@@ -6,40 +6,47 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import r2_score
 
-st.title("🤖 ML Sales Prediction")
+st.title("🤖 ML Sales Prediction Engine")
 
-games = pd.read_csv("data/games.csv")
-sales = pd.read_csv("data/vgsales.csv")
+@st.cache_data
+def load_data():
+    games = pd.read_csv("data/games.csv")
+    sales = pd.read_csv("data/vgsales.csv")
+    sales.rename(columns={"Name":"Title"}, inplace=True)
+    df = pd.merge(games,sales,on="Title")
+    return df
 
-sales.rename(columns={"Name": "Title"}, inplace=True)
-
-df = pd.merge(games, sales, on="Title", how="inner")
-
-df.replace([np.inf, -np.inf], np.nan, inplace=True)
-
-# Encode safely
-le_genre = LabelEncoder()
-le_platform = LabelEncoder()
-le_publisher = LabelEncoder()
-
-df["Genre"] = le_genre.fit_transform(df["Genre"].astype(str))
-df["Platform"] = le_platform.fit_transform(df["Platform"].astype(str))
-df["Publisher"] = le_publisher.fit_transform(df["Publisher"].astype(str))
-
-df["Rating"] = pd.to_numeric(df["Rating"], errors="coerce")
-df["Wishlist"] = pd.to_numeric(df["Wishlist"], errors="coerce")
-df["Global_Sales"] = pd.to_numeric(df["Global_Sales"], errors="coerce")
-
+df = load_data()
 df.dropna(inplace=True)
 
-X = df[["Genre", "Platform", "Publisher", "Rating", "Wishlist"]]
+le_g = LabelEncoder()
+le_p = LabelEncoder()
+le_pub = LabelEncoder()
+
+df["Genre"] = le_g.fit_transform(df["Genre"].astype(str))
+df["Platform"] = le_p.fit_transform(df["Platform"].astype(str))
+df["Publisher"] = le_pub.fit_transform(df["Publisher"].astype(str))
+
+X = df[["Genre","Platform","Publisher","Rating","Wishlist"]]
 y = df["Global_Sales"]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+with st.spinner("Training Model..."):
+    X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.2)
+    model = RandomForestRegressor()
+    model.fit(X_train,y_train)
+    score = r2_score(y_test,model.predict(X_test))
 
-model = RandomForestRegressor()
-model.fit(X_train, y_train)
+st.success("Model Trained Successfully")
+st.metric("R² Score", round(score,3))
 
-score = r2_score(y_test, model.predict(X_test))
+st.markdown("### Predict New Game")
 
-st.metric("Model R² Score", round(score, 3))
+rating = st.slider("Rating",0.0,5.0,4.0)
+wishlist = st.number_input("Wishlist",0,100000,5000)
+
+if st.button("Predict Sales"):
+    sample = X.iloc[0:1].copy()
+    sample["Rating"] = rating
+    sample["Wishlist"] = wishlist
+    pred = model.predict(sample)
+    st.success(f"Predicted Sales (Millions): {round(pred[0],2)}")
