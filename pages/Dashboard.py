@@ -3,29 +3,22 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-st.title("Sales & Engagement Dashboard")
+st.title("📊 Sales & Engagement Dashboard")
 
-@st.cache_data
-def load():
-    games = pd.read_csv("data/games.csv")
-    sales = pd.read_csv("data/vgsales.csv")
-    sales.rename(columns={"Name":"Title"}, inplace=True)
-    df = pd.merge(games, sales, on="Title", how="inner")
-    return df
+games = pd.read_csv("data/games.csv")
+sales = pd.read_csv("data/vgsales.csv")
 
-df = load()
+sales.rename(columns={"Name": "Title"}, inplace=True)
 
-# SAFE CLEANING
+df = pd.merge(games, sales, on="Title", how="inner")
+
 df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-numeric_cols = ["Rating","Wishlist","Global_Sales"]
-for col in numeric_cols:
-    if col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+for col in ["Rating", "Wishlist", "Global_Sales"]:
+    df[col] = pd.to_numeric(df[col], errors="coerce")
 
-df.dropna(subset=numeric_cols, inplace=True)
+df.dropna(subset=["Rating", "Wishlist", "Global_Sales"], inplace=True)
 
-# Scatter Plot
 fig = px.scatter(
     df,
     x="Rating",
