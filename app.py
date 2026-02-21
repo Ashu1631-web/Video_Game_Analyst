@@ -1,19 +1,20 @@
 import streamlit as st
+import os
 
 st.set_page_config(page_title="Enterprise Gaming Analytics", layout="wide")
 
-st.title("🎮 Enterprise Video Game Analytics System")
+st.title("🎮 Enterprise Gaming Analytics Platform")
 
 st.markdown("""
-Welcome to the Professional Gaming Analytics Platform.
-
-### Modules Included:
-- 📊 Interactive Sales & Engagement Dashboard
-- 🤖 Machine Learning Sales Prediction
-- 📈 Time-Series Forecasting (Prophet)
-- 🎯 AI Recommendation Engine
-
-Use the sidebar to navigate between modules.
+### Modules:
+- Dashboard
+- ML Prediction
+- Forecasting
+- Recommendation
 """)
 
-st.success("System Loaded Successfully 🚀")
+# Show SQL file content
+if os.path.exists("sql/schema.sql"):
+    with st.expander("View SQL Schema"):
+        with open("sql/schema.sql", "r") as f:
+            st.code(f.read(), language="sql")
