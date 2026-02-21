@@ -1,35 +1,30 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import LabelEncoder
 
-st.title("🎯 Game Recommendation Engine")
+st.title("Game Recommendation Engine")
 
-@st.cache_data
-def load():
-    games = pd.read_csv("data/games.csv")
-    return games
+games = pd.read_csv("data/games.csv")
 
-df = load()
+games["Rating"] = pd.to_numeric(games["Rating"], errors="coerce")
+games["Wishlist"] = pd.to_numeric(games["Wishlist"], errors="coerce")
 
-df = df[["Title","Rating","Wishlist","Genres"]].dropna()
+games.dropna(subset=["Rating","Wishlist","Genres"], inplace=True)
 
 le = LabelEncoder()
-df["Genres"] = le.fit_transform(df["Genres"])
+games["Genres"] = le.fit_transform(games["Genres"].astype(str))
 
-features = df[["Rating","Wishlist","Genres"]]
+features = games[["Rating","Wishlist","Genres"]].values
 
 similarity = cosine_similarity(features)
 
-game_list = df["Title"].values
-selected_game = st.selectbox("Select a Game", game_list)
+selected = st.selectbox("Select Game", games["Title"])
 
 if st.button("Recommend"):
-    idx = df[df["Title"]==selected_game].index[0]
+    idx = games[games["Title"] == selected].index[0]
     scores = list(enumerate(similarity[idx]))
     scores = sorted(scores, key=lambda x: x[1], reverse=True)[1:6]
-    recommended = [df.iloc[i[0]]["Title"] for i in scores]
-    
-    st.subheader("Recommended Games:")
-    for game in recommended:
-        st.write(game)
+    for i in scores:
+        st.write(games.iloc[i[0]]["Title"])
