@@ -41,7 +41,7 @@ if not st.session_state.auth:
     <style>
     [data-testid="stSidebar"] {display:none;}
     .stApp {
-        background-image:url("https://images.unsplash.com/photo-1542751371-adc38448a05e");
+        background-image:url("https://images.unsplash.com/photo-1601987177651-8edfe6c20009?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NzF8fGdhbWV8ZW58MHx8MHx8fDA%3D");
         background-size:cover;
     }
     </style>
