@@ -93,38 +93,41 @@ def login_page():
         background: rgba(0,0,0,0.75);
         padding: 40px;
         border-radius: 15px;
-        width: 400px;
+        width: 420px;
         margin: auto;
-        margin-top: 100px;
+        margin-top: 80px;
+        text-align: center;
+    }
+    .title {
+        font-size: 32px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .subtitle {
+        font-size: 16px;
+        color: #aaa;
+        margin-bottom: 25px;
     }
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown("<div class='login-box'>", unsafe_allow_html=True)
-    st.title("🔐 Login System")
 
-    menu = ["Login", "Signup"]
-    choice = st.selectbox("Menu", menu)
+    # 🎮 Custom Title (No 'Login System')
+    st.markdown("<div class='title'>🎮 Video Game Sales Analysis</div>", unsafe_allow_html=True)
+    st.markdown("<div class='subtitle'>Secure Admin Access</div>", unsafe_allow_html=True)
 
-    if choice == "Login":
-        username = st.text_input("Username")
-        password = st.text_input("Password", type='password')
+    # 🔐 LOGIN ONLY (NO MENU / SIGNUP)
+    username = st.text_input("Username")
+    password = st.text_input("Password", type='password')
 
-        if st.button("Login"):
-            result = login_user(username, password)
-            if result:
-                st.session_state['logged_in'] = True
-                st.success("Welcome Admin ✅")
-            else:
-                st.error("Invalid Credentials ❌")
-
-    elif choice == "Signup":
-        new_user = st.text_input("Username")
-        new_password = st.text_input("Password", type='password')
-
-        if st.button("Signup"):
-            add_user(new_user, new_password)
-            st.success("Account Created Successfully 🎉")
+    if st.button("Login"):
+        result = login_user(username, password)
+        if result:
+            st.session_state['logged_in'] = True
+            st.success("Welcome Admin ✅")
+        else:
+            st.error("Invalid Credentials ❌")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
