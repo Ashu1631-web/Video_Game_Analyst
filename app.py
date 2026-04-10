@@ -1,7 +1,3 @@
-# =========================================
-# 🎮 FINAL STREAMLIT APP
-# =========================================
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -42,7 +38,7 @@ if not st.session_state.auth:
     <style>
     [data-testid="stSidebar"] {display: none;}
     .stApp {
-        background-image: url("https://images.unsplash.com/photo-1542751371-adc38448a05e");
+        background-image: url("https://images.unsplash.com/photo-1570303345338-e1f0eddf4946?q=80&w=1071&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
         background-size: cover;
     }
     </style>
