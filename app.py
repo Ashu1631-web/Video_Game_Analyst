@@ -172,19 +172,57 @@ elif menu == "📈 ML Forecast":
 
 # ================= SQL =================
 elif menu == "🧮 SQL Analysis":
-    st.title("SQL")
+    st.title("🧮 SQL Analysis Dashboard")
 
     conn = sqlite3.connect("games.db", check_same_thread=False)
     games.to_sql("games", conn, if_exists="replace", index=False)
     sales.to_sql("vgsales", conn, if_exists="replace", index=False)
 
-    q = st.selectbox("Query", [
-        "SELECT Platform, SUM(Global_Sales) FROM vgsales GROUP BY Platform",
-        "SELECT Publisher, SUM(Global_Sales) FROM vgsales GROUP BY Publisher"
-    ])
+    queries = {
+        "1. Top Rated Games": "SELECT Title, Rating FROM games ORDER BY Rating DESC LIMIT 10",
+        "2. Most Wishlisted Games": "SELECT Title, Wishlist FROM games ORDER BY Wishlist DESC LIMIT 10",
+        "3. Avg Rating by Genre": "SELECT Genres, AVG(Rating) as avg_rating FROM games GROUP BY Genres",
+        "4. Most Played Games": "SELECT Title, Plays FROM games ORDER BY Plays DESC LIMIT 10",
+        "5. Developer Performance": "SELECT Team, AVG(Rating) as avg_rating FROM games GROUP BY Team",
 
-    df_sql = pd.read_sql(q, conn)
+        "6. Sales by Platform": "SELECT Platform, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Platform",
+        "7. Top Publishers": "SELECT Publisher, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Publisher ORDER BY total_sales DESC LIMIT 10",
+        "8. Yearly Sales Trend": "SELECT Year, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Year",
+        "9. Regional Sales Comparison": "SELECT SUM(NA_Sales) as NA, SUM(EU_Sales) as EU, SUM(JP_Sales) as JP FROM vgsales",
+        "10. Top Selling Games": "SELECT Name, Global_Sales FROM vgsales ORDER BY Global_Sales DESC LIMIT 10",
+
+        "11. Rating vs Sales": "SELECT g.Title, g.Rating, v.Global_Sales FROM games g JOIN vgsales v ON g.Title = v.Name",
+        "12. Genre-wise Sales": "SELECT Genre, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Genre",
+        "13. Platform Rating Analysis": "SELECT v.Platform, AVG(g.Rating) as avg_rating FROM games g JOIN vgsales v ON g.Title = v.Name GROUP BY v.Platform",
+        "14. Wishlist vs Sales": "SELECT g.Title, g.Wishlist, v.Global_Sales FROM games g JOIN vgsales v ON g.Title = v.Name",
+        "15. Genre + Platform Performance": "SELECT Genre, Platform, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Genre, Platform"
+    }
+
+    selected_query = st.selectbox("📌 Select Analysis", list(queries.keys()))
+    df_sql = pd.read_sql(queries[selected_query], conn)
+
+    st.subheader("📋 Data Table")
     st.dataframe(df_sql)
+
+    st.subheader(f"📊 {selected_query} Visualization")
+
+    if selected_query == "8. Yearly Sales Trend":
+        fig = px.line(df_sql, x="Year", y="total_sales", markers=True)
+
+    elif selected_query == "9. Regional Sales Comparison":
+        df_melt = df_sql.melt(var_name="Region", value_name="Sales")
+        fig = px.pie(df_melt, names="Region", values="Sales")
+
+    elif selected_query in ["11. Rating vs Sales", "14. Wishlist vs Sales"]:
+        fig = px.scatter(df_sql, x=df_sql.columns[1], y=df_sql.columns[2])
+
+    elif selected_query == "15. Genre + Platform Performance":
+        fig = px.sunburst(df_sql, path=["Genre", "Platform"], values="total_sales")
+
+    else:
+        fig = px.bar(df_sql, x=df_sql.columns[0], y=df_sql.columns[1])
+
+    st.plotly_chart(fig, use_container_width=True)
 
 # ================= DOWNLOAD =================
 elif menu == "📥 Download":
