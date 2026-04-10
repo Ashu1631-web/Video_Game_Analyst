@@ -1,5 +1,5 @@
 # =========================================
-# 🎮 FINAL STREAMLIT APP (FILTER FIXED)
+# 🎮 FINAL CLEAN STREAMLIT APP
 # =========================================
 
 import streamlit as st
@@ -62,8 +62,6 @@ games, sales = load()
 
 # ================= SIDEBAR =================
 with st.sidebar:
-
-    # 🎮 NAVIGATION
     st.title("🎮 Navigation")
 
     menu = st.radio("", [
@@ -72,66 +70,63 @@ with st.sidebar:
         "🧮 SQL Analysis","📥 Download","⚙️ Admin"
     ])
 
-    st.markdown("---")
-
-    # 🎯 FILTERS
-    st.title("🎯 Drill Down Filters")
-
-    genre = st.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
-    df = sales.copy()
-
-    if genre != "All":
-        df = df[df["Genre"] == genre]
-
-    platform = st.selectbox("Platform", ["All"] + list(df["Platform"].dropna().unique()))
-    if platform != "All":
-        df = df[df["Platform"] == platform]
-
-    year = st.selectbox("Year", ["All"] + list(sorted(df["Year"].dropna().unique())))
-    if year != "All":
-        df = df[df["Year"] == year]
-
-    game = st.selectbox("Game", ["All"] + list(df["Name"].dropna().unique()))
-    if game != "All":
-        df = df[df["Name"] == game]
-
-    filtered = df
-
-# ================= EMPTY CHECK =================
-if filtered.empty:
-    st.warning("⚠️ No data for selected filters")
-    st.stop()
-
-# ================= BREADCRUMB =================
-st.markdown(f"""
-### 🔍 Drill Path:
-**Genre → {genre} | Platform → {platform} | Year → {year} | Game → {game}**
-""")
-
 # ================= OVERVIEW =================
 if menu == "📌 Overview":
     st.title("🎮 Project Overview")
-    st.write("Power BI style dashboard with working filters")
+    st.write("Power BI style dashboard with drill-down filters")
 
 # ================= DASHBOARD =================
 elif menu == "📊 Dashboard":
     st.title("📊 Dashboard")
 
+    # 🎯 FILTERS INSIDE DASHBOARD
+    colf1, colf2, colf3, colf4 = st.columns(4)
+
+    genre = colf1.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
+    df = sales.copy()
+
+    if genre != "All":
+        df = df[df["Genre"] == genre]
+
+    platform = colf2.selectbox("Platform", ["All"] + list(df["Platform"].dropna().unique()))
+    if platform != "All":
+        df = df[df["Platform"] == platform]
+
+    year = colf3.selectbox("Year", ["All"] + list(sorted(df["Year"].dropna().unique())))
+    if year != "All":
+        df = df[df["Year"] == year]
+
+    game = colf4.selectbox("Game", ["All"] + list(df["Name"].dropna().unique()))
+    if game != "All":
+        df = df[df["Name"] == game]
+
+    filtered = df
+
+    # 🚨 No data case
+    if filtered.empty:
+        st.warning("⚠️ No data for selected filters")
+        st.stop()
+
+    # 📊 KPIs
     col1, col2, col3 = st.columns(3)
     col1.metric("💰 Sales", round(filtered["Global_Sales"].sum(),2))
     col2.metric("📊 Avg", round(filtered["Global_Sales"].mean(),2))
     col3.metric("🎮 Games", len(filtered))
 
+    # 📈 Graph (FILTERED)
     df_year = filtered.groupby("Year")["Global_Sales"].sum().reset_index()
     st.plotly_chart(px.line(df_year, x="Year", y="Global_Sales", markers=True))
+
+    # Additional chart
+    st.plotly_chart(px.bar(filtered, x="Platform", y="Global_Sales", color="Genre"))
 
 # ================= SALES =================
 elif menu == "💰 Sales":
     st.title("💰 Sales Analysis")
 
-    st.plotly_chart(px.bar(filtered, x="Platform", y="Global_Sales", color="Genre"))
-    st.plotly_chart(px.pie(filtered, names="Genre", values="Global_Sales"))
-    st.plotly_chart(px.box(filtered, x="Genre", y="Global_Sales"))
+    st.plotly_chart(px.bar(sales, x="Platform", y="Global_Sales", color="Genre"))
+    st.plotly_chart(px.pie(sales, names="Genre", values="Global_Sales"))
+    st.plotly_chart(px.box(sales, x="Genre", y="Global_Sales"))
 
 # ================= ENGAGEMENT =================
 elif menu == "🎮 Engagement":
@@ -144,7 +139,7 @@ elif menu == "🎮 Engagement":
 elif menu == "🧠 Insights":
     st.title("🧠 Insights")
 
-    merged = pd.merge(games, filtered, left_on="Title", right_on="Name")
+    merged = pd.merge(games, sales, left_on="Title", right_on="Name")
 
     st.plotly_chart(px.scatter(merged, x="Rating", y="Global_Sales", color="Genre"))
     st.plotly_chart(px.sunburst(merged, path=["Genre","Platform"], values="Global_Sales"))
@@ -153,7 +148,7 @@ elif menu == "🧠 Insights":
 elif menu == "📈 ML Forecast":
     st.title("📈 Sales Forecast")
 
-    df_ml = filtered.groupby("Year")["Global_Sales"].sum().reset_index()
+    df_ml = sales.groupby("Year")["Global_Sales"].sum().reset_index()
 
     model = LinearRegression()
     model.fit(df_ml[["Year"]], df_ml["Global_Sales"])
@@ -171,7 +166,7 @@ elif menu == "📈 ML Forecast":
 elif menu == "🧮 SQL Analysis":
     st.title("🧮 SQL Analysis")
 
-    conn = sqlite3.connect("games.db")
+    conn = sqlite3.connect("games.db", check_same_thread=False)
     games.to_sql("games", conn, if_exists="replace", index=False)
     sales.to_sql("vgsales", conn, if_exists="replace", index=False)
 
@@ -189,7 +184,7 @@ elif menu == "🧮 SQL Analysis":
 
 # ================= DOWNLOAD =================
 elif menu == "📥 Download":
-    st.download_button("Download CSV", filtered.to_csv(index=False))
+    st.download_button("Download CSV", sales.to_csv(index=False))
 
 # ================= ADMIN =================
 elif menu == "⚙️ Admin":
@@ -199,4 +194,4 @@ elif menu == "⚙️ Admin":
 
 # ================= FOOTER =================
 st.markdown("---")
-st.markdown("🔥 FINAL FILTER WORKING DASHBOARD")
+st.markdown("🔥 FINAL CLEAN PROFESSIONAL DASHBOARD")
