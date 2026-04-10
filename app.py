@@ -1,7 +1,3 @@
-# =========================================
-# 🎮 ULTRA PREMIUM FINAL STREAMLIT APP
-# =========================================
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -10,34 +6,40 @@ from sklearn.linear_model import LinearRegression
 
 st.set_page_config(page_title="🎮 Game Analytics Pro", layout="wide")
 
+# ================= SESSION =================
+if "auth" not in st.session_state:
+    st.session_state.auth = False
+
 # ================= LOGIN =================
 def login():
     st.markdown("## 🔐 Gaming Login")
+
     u = st.text_input("Username")
     p = st.text_input("Password", type="password")
 
     if st.button("Login"):
         if u == "admin" and p == "1234":
             st.session_state.auth = True
+            st.rerun()
         else:
             st.error("Invalid Credentials")
 
-if "auth" not in st.session_state:
-    st.session_state.auth = False
-
+# ================= HIDE SIDEBAR BEFORE LOGIN =================
 if not st.session_state.auth:
     st.markdown("""
     <style>
+    [data-testid="stSidebar"] {display: none;}
     .stApp {
         background-image: url("https://images.unsplash.com/photo-1542751371-adc38448a05e");
         background-size: cover;
     }
     </style>
     """, unsafe_allow_html=True)
+
     login()
     st.stop()
 
-# ================= LOAD =================
+# ================= LOAD DATA =================
 @st.cache_data
 def load():
     g = pd.read_csv("data/games.csv")
@@ -46,7 +48,7 @@ def load():
 
 games, sales = load()
 
-# ================= SQL SETUP =================
+# ================= SQL =================
 conn = sqlite3.connect("games.db", check_same_thread=False)
 games.to_sql("games", conn, if_exists="replace", index=False)
 sales.to_sql("vgsales", conn, if_exists="replace", index=False)
@@ -80,7 +82,7 @@ st.markdown(f"""
 """)
 
 # ================= MENU =================
-menu = st.sidebar.radio("Navigation", [
+menu = st.sidebar.radio("🎮 Navigation", [
     "📌 Overview","📊 Dashboard","💰 Sales",
     "🎮 Engagement","🧠 Insights","📈 ML Forecast",
     "🧮 SQL Analysis","📥 Download","⚙️ Admin"
@@ -89,7 +91,17 @@ menu = st.sidebar.radio("Navigation", [
 # ================= OVERVIEW =================
 if menu == "📌 Overview":
     st.title("🎮 Project Overview")
-    st.write("Power BI Style Dashboard with SQL + ML + Drill-down")
+    st.markdown("""
+    ### Video Game Sales & Engagement Analytics
+
+    🔥 Features:
+    - Power BI style drill-down filters
+    - 20+ interactive charts
+    - SQL analytics
+    - ML forecasting
+
+    👉 Use sidebar to explore dashboards
+    """)
 
 # ================= DASHBOARD =================
 elif menu == "📊 Dashboard":
@@ -105,13 +117,12 @@ elif menu == "📊 Dashboard":
 
 # ================= SALES =================
 elif menu == "💰 Sales":
-    st.title("💰 Sales")
+    st.title("💰 Sales Analysis")
 
     st.plotly_chart(px.bar(filtered, x="Platform", y="Global_Sales",
                            color="Genre", animation_frame="Year"))
 
     st.plotly_chart(px.pie(filtered, names="Genre", values="Global_Sales"))
-
     st.plotly_chart(px.box(filtered, x="Genre", y="Global_Sales"))
 
 # ================= ENGAGEMENT =================
@@ -145,8 +156,8 @@ elif menu == "📈 ML Forecast":
 
     future["Forecast"] = model.predict(future)
 
-    st.plotly_chart(px.line(df_ml, x="Year", y="Global_Sales", title="Past"))
-    st.plotly_chart(px.line(future, x="Year", y="Forecast", title="Forecast"))
+    st.plotly_chart(px.line(df_ml, x="Year", y="Global_Sales", title="Past Sales"))
+    st.plotly_chart(px.line(future, x="Year", y="Forecast", title="Future Prediction"))
 
 # ================= SQL ANALYSIS =================
 elif menu == "🧮 SQL Analysis":
@@ -192,4 +203,4 @@ elif menu == "⚙️ Admin":
 
 # ================= FOOTER =================
 st.markdown("---")
-st.markdown("🔥 FINAL ULTRA PREMIUM DASHBOARD")
+st.markdown("🔥 FINAL ULTRA PREMIUM DASHBOARD READY")
