@@ -1,5 +1,5 @@
 # =========================================
-# 🎮 FINAL CLEAN STREAMLIT APP
+# 🎮 FINAL STREAMLIT APP (FILTER FIXED)
 # =========================================
 
 import streamlit as st
@@ -14,7 +14,7 @@ st.set_page_config(page_title="🎮 Game Analytics Pro", layout="wide")
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
-# ================= HIDE DEFAULT STREAMLIT MENU =================
+# ================= HIDE DEFAULT MENU =================
 st.markdown("""
 <style>
 [data-testid="stSidebarNav"] {display: none;}
@@ -26,7 +26,6 @@ footer {visibility: hidden;}
 # ================= LOGIN =================
 def login():
     st.markdown("## 🔐 Gaming Login")
-
     u = st.text_input("Username")
     p = st.text_input("Password", type="password")
 
@@ -61,31 +60,26 @@ def load():
 
 games, sales = load()
 
-# ================= SQL =================
-conn = sqlite3.connect("games.db", check_same_thread=False)
-games.to_sql("games", conn, if_exists="replace", index=False)
-sales.to_sql("vgsales", conn, if_exists="replace", index=False)
-
 # ================= SIDEBAR =================
 with st.sidebar:
 
-    # 🎮 NAVIGATION (TOP)
+    # 🎮 NAVIGATION
     st.title("🎮 Navigation")
 
-    menu = st.radio(
-        "",
-        ["📌 Overview","📊 Dashboard","💰 Sales",
-         "🎮 Engagement","🧠 Insights","📈 ML Forecast",
-         "🧮 SQL Analysis","📥 Download","⚙️ Admin"]
-    )
+    menu = st.radio("", [
+        "📌 Overview","📊 Dashboard","💰 Sales",
+        "🎮 Engagement","🧠 Insights","📈 ML Forecast",
+        "🧮 SQL Analysis","📥 Download","⚙️ Admin"
+    ])
 
     st.markdown("---")
 
-    # 🎯 FILTERS (BELOW)
+    # 🎯 FILTERS
     st.title("🎯 Drill Down Filters")
 
     genre = st.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
     df = sales.copy()
+
     if genre != "All":
         df = df[df["Genre"] == genre]
 
@@ -103,6 +97,11 @@ with st.sidebar:
 
     filtered = df
 
+# ================= EMPTY CHECK =================
+if filtered.empty:
+    st.warning("⚠️ No data for selected filters")
+    st.stop()
+
 # ================= BREADCRUMB =================
 st.markdown(f"""
 ### 🔍 Drill Path:
@@ -112,18 +111,7 @@ st.markdown(f"""
 # ================= OVERVIEW =================
 if menu == "📌 Overview":
     st.title("🎮 Project Overview")
-
-    st.markdown("""
-    ### Video Game Sales & Engagement Analytics
-
-    🔥 Features:
-    - Power BI style drill-down filters
-    - 20+ interactive charts
-    - SQL analytics
-    - ML forecasting
-
-    👉 Use sidebar to explore dashboards
-    """)
+    st.write("Power BI style dashboard with working filters")
 
 # ================= DASHBOARD =================
 elif menu == "📊 Dashboard":
@@ -134,16 +122,14 @@ elif menu == "📊 Dashboard":
     col2.metric("📊 Avg", round(filtered["Global_Sales"].mean(),2))
     col3.metric("🎮 Games", len(filtered))
 
-    df_year = sales.groupby("Year")["Global_Sales"].sum().reset_index()
+    df_year = filtered.groupby("Year")["Global_Sales"].sum().reset_index()
     st.plotly_chart(px.line(df_year, x="Year", y="Global_Sales", markers=True))
 
 # ================= SALES =================
 elif menu == "💰 Sales":
-    st.title("💰 Sales")
+    st.title("💰 Sales Analysis")
 
-    st.plotly_chart(px.bar(filtered, x="Platform", y="Global_Sales",
-                           color="Genre", animation_frame="Year"))
-
+    st.plotly_chart(px.bar(filtered, x="Platform", y="Global_Sales", color="Genre"))
     st.plotly_chart(px.pie(filtered, names="Genre", values="Global_Sales"))
     st.plotly_chart(px.box(filtered, x="Genre", y="Global_Sales"))
 
@@ -158,7 +144,7 @@ elif menu == "🎮 Engagement":
 elif menu == "🧠 Insights":
     st.title("🧠 Insights")
 
-    merged = pd.merge(games, sales, left_on="Title", right_on="Name")
+    merged = pd.merge(games, filtered, left_on="Title", right_on="Name")
 
     st.plotly_chart(px.scatter(merged, x="Rating", y="Global_Sales", color="Genre"))
     st.plotly_chart(px.sunburst(merged, path=["Genre","Platform"], values="Global_Sales"))
@@ -167,7 +153,7 @@ elif menu == "🧠 Insights":
 elif menu == "📈 ML Forecast":
     st.title("📈 Sales Forecast")
 
-    df_ml = sales.groupby("Year")["Global_Sales"].sum().reset_index()
+    df_ml = filtered.groupby("Year")["Global_Sales"].sum().reset_index()
 
     model = LinearRegression()
     model.fit(df_ml[["Year"]], df_ml["Global_Sales"])
@@ -185,33 +171,21 @@ elif menu == "📈 ML Forecast":
 elif menu == "🧮 SQL Analysis":
     st.title("🧮 SQL Analysis")
 
+    conn = sqlite3.connect("games.db")
+    games.to_sql("games", conn, if_exists="replace", index=False)
+    sales.to_sql("vgsales", conn, if_exists="replace", index=False)
+
     queries = {
-        "Top Rated Games": "SELECT Title, Rating FROM games ORDER BY Rating DESC LIMIT 10",
-        "Wishlisted Games": "SELECT Title, Wishlist FROM games ORDER BY Wishlist DESC LIMIT 10",
-        "Avg Rating Genre": "SELECT Genres, AVG(Rating) FROM games GROUP BY Genres",
-        "Played Games": "SELECT Title, Plays FROM games ORDER BY Plays DESC LIMIT 10",
-        "Developer Performance": "SELECT Team, AVG(Rating) FROM games GROUP BY Team",
-
-        "Sales by Platform": "SELECT Platform, SUM(Global_Sales) FROM vgsales GROUP BY Platform",
-        "Top Publishers": "SELECT Publisher, SUM(Global_Sales) FROM vgsales GROUP BY Publisher LIMIT 10",
-        "Yearly Sales": "SELECT Year, SUM(Global_Sales) FROM vgsales GROUP BY Year",
-        "Regional Sales": "SELECT SUM(NA_Sales), SUM(EU_Sales), SUM(JP_Sales) FROM vgsales",
-        "Top Games": "SELECT Name, Global_Sales FROM vgsales ORDER BY Global_Sales DESC LIMIT 10",
-
-        "Rating vs Sales": "SELECT g.Title, g.Rating, v.Global_Sales FROM games g JOIN vgsales v ON g.Title=v.Name",
-        "Genre Sales": "SELECT Genre, SUM(Global_Sales) FROM vgsales GROUP BY Genre",
-        "Platform Rating": "SELECT v.Platform, AVG(g.Rating) FROM games g JOIN vgsales v ON g.Title=v.Name GROUP BY v.Platform",
-        "Wishlist vs Sales": "SELECT g.Title, g.Wishlist, v.Global_Sales FROM games g JOIN vgsales v ON g.Title=v.Name",
-        "Genre Platform": "SELECT Genre, Platform, SUM(Global_Sales) FROM vgsales GROUP BY Genre, Platform"
+        "Top Platforms": "SELECT Platform, SUM(Global_Sales) FROM vgsales GROUP BY Platform",
+        "Top Publishers": "SELECT Publisher, SUM(Global_Sales) FROM vgsales GROUP BY Publisher",
+        "Yearly Sales": "SELECT Year, SUM(Global_Sales) FROM vgsales GROUP BY Year"
     }
 
     q = st.selectbox("Select Query", list(queries.keys()))
     df_sql = pd.read_sql(queries[q], conn)
 
     st.dataframe(df_sql)
-
-    if df_sql.shape[1] >= 2:
-        st.plotly_chart(px.bar(df_sql, x=df_sql.columns[0], y=df_sql.columns[1]))
+    st.plotly_chart(px.bar(df_sql, x=df_sql.columns[0], y=df_sql.columns[1]))
 
 # ================= DOWNLOAD =================
 elif menu == "📥 Download":
@@ -225,4 +199,4 @@ elif menu == "⚙️ Admin":
 
 # ================= FOOTER =================
 st.markdown("---")
-st.markdown("🔥 FINAL CLEAN PROFESSIONAL DASHBOARD")
+st.markdown("🔥 FINAL FILTER WORKING DASHBOARD")
