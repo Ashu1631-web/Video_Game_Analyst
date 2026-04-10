@@ -157,6 +157,46 @@ elif menu == "📊 Dashboard":
     st.plotly_chart(px.scatter(filtered, x="Year", y="Global_Sales", title="14. Year vs Sales"))
     st.plotly_chart(px.density_heatmap(filtered, x="Genre", y="Platform", title="15. Heatmap"))
 
+# ================= SALES =================
+elif menu == "💰 Sales":
+    st.title("💰 Sales Analysis")
+
+    if sales.empty:
+        st.warning("No sales data available")
+        st.stop()
+
+    st.plotly_chart(px.bar(sales, x="Platform", y="Global_Sales"))
+    st.plotly_chart(px.pie(sales, names="Genre", values="Global_Sales"))
+    st.plotly_chart(px.box(sales, x="Genre", y="Global_Sales"))
+
+# ================= ENGAGEMENT =================
+elif menu == "🎮 Engagement":
+    st.title("🎮 Engagement Analysis")
+
+    if games.empty:
+        st.warning("No engagement data available")
+        st.stop()
+
+    st.plotly_chart(px.histogram(games, x="Rating"))
+    st.plotly_chart(px.scatter(games, x="Rating", y="Wishlist"))
+
+# ================= INSIGHTS =================
+elif menu == "🧠 Insights":
+    st.title("🧠 Insights Analysis")
+
+    if "Title" in games.columns and "Name" in sales.columns:
+        merged = pd.merge(games, sales, left_on="Title", right_on="Name", how="inner")
+    else:
+        st.error("Column mismatch (Title / Name)")
+        st.stop()
+
+    if merged.empty:
+        st.warning("⚠️ No matching data between datasets")
+        st.stop()
+
+    st.plotly_chart(px.scatter(merged, x="Rating", y="Global_Sales", color="Genre"))
+    st.plotly_chart(px.sunburst(merged, path=["Genre","Platform"], values="Global_Sales"))
+
 # ================= ML =================
 elif menu == "📈 ML Forecast":
     st.title("📈 Forecast")
@@ -201,24 +241,17 @@ elif menu == "🧮 SQL Analysis":
     selected_query = st.selectbox("📌 Select Analysis", list(queries.keys()))
     df_sql = pd.read_sql(queries[selected_query], conn)
 
-    st.subheader("📋 Data Table")
     st.dataframe(df_sql)
-
-    st.subheader(f"📊 {selected_query} Visualization")
 
     if selected_query == "8. Yearly Sales Trend":
         fig = px.line(df_sql, x="Year", y="total_sales", markers=True)
-
     elif selected_query == "9. Regional Sales Comparison":
         df_melt = df_sql.melt(var_name="Region", value_name="Sales")
         fig = px.pie(df_melt, names="Region", values="Sales")
-
     elif selected_query in ["11. Rating vs Sales", "14. Wishlist vs Sales"]:
         fig = px.scatter(df_sql, x=df_sql.columns[1], y=df_sql.columns[2])
-
     elif selected_query == "15. Genre + Platform Performance":
         fig = px.sunburst(df_sql, path=["Genre", "Platform"], values="total_sales")
-
     else:
         fig = px.bar(df_sql, x=df_sql.columns[0], y=df_sql.columns[1])
 
