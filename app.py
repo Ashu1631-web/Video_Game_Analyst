@@ -79,6 +79,26 @@ inject_css()
 # LOGIN PAGE
 # ------------------------------
 def login_page():
+    # Background Image CSS
+    st.markdown("""
+    <style>
+    .stApp {
+        background-image: url('https://images.unsplash.com/photo-1511512578047-dfb367046420');
+        background-size: cover;
+        background-position: center;
+    }
+    .login-box {
+        background: rgba(0,0,0,0.75);
+        padding: 40px;
+        border-radius: 15px;
+        width: 400px;
+        margin: auto;
+        margin-top: 100px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div class='login-box'>", unsafe_allow_html=True)
     st.title("🔐 Login System")
 
     menu = ["Login", "Signup"]
@@ -92,9 +112,9 @@ def login_page():
             result = login_user(username, password)
             if result:
                 st.session_state['logged_in'] = True
-                st.success("Logged In")
+                st.success("Logged In Successfully ✅")
             else:
-                st.error("Invalid Credentials")
+                st.error("Invalid Credentials ❌")
 
     elif choice == "Signup":
         new_user = st.text_input("Username")
@@ -102,7 +122,9 @@ def login_page():
 
         if st.button("Signup"):
             add_user(new_user, new_password)
-            st.success("Account Created")
+            st.success("Account Created Successfully 🎉")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------------------------
 # DASHBOARD
