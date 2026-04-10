@@ -10,6 +10,15 @@ st.set_page_config(page_title="🎮 Game Analytics Pro", layout="wide")
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
+# ================= HIDE DEFAULT STREAMLIT MENU =================
+st.markdown("""
+<style>
+[data-testid="stSidebarNav"] {display: none;}
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
 # ================= LOGIN =================
 def login():
     st.markdown("## 🔐 Gaming Login")
@@ -53,44 +62,53 @@ conn = sqlite3.connect("games.db", check_same_thread=False)
 games.to_sql("games", conn, if_exists="replace", index=False)
 sales.to_sql("vgsales", conn, if_exists="replace", index=False)
 
-# ================= DRILL FILTER =================
-st.sidebar.title("🎯 Drill Down Filters")
+# ================= SIDEBAR =================
+with st.sidebar:
 
-genre = st.sidebar.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
-df = sales.copy()
-if genre != "All":
-    df = df[df["Genre"] == genre]
+    # 🎮 NAVIGATION (TOP)
+    st.title("🎮 Navigation")
 
-platform = st.sidebar.selectbox("Platform", ["All"] + list(df["Platform"].dropna().unique()))
-if platform != "All":
-    df = df[df["Platform"] == platform]
+    menu = st.radio(
+        "",
+        ["📌 Overview","📊 Dashboard","💰 Sales",
+         "🎮 Engagement","🧠 Insights","📈 ML Forecast",
+         "🧮 SQL Analysis","📥 Download","⚙️ Admin"]
+    )
 
-year = st.sidebar.selectbox("Year", ["All"] + list(sorted(df["Year"].dropna().unique())))
-if year != "All":
-    df = df[df["Year"] == year]
+    st.markdown("---")
 
-game = st.sidebar.selectbox("Game", ["All"] + list(df["Name"].dropna().unique()))
-if game != "All":
-    df = df[df["Name"] == game]
+    # 🎯 FILTERS (BELOW)
+    st.title("🎯 Drill Down Filters")
 
-filtered = df
+    genre = st.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
+    df = sales.copy()
+    if genre != "All":
+        df = df[df["Genre"] == genre]
 
-# Breadcrumb
+    platform = st.selectbox("Platform", ["All"] + list(df["Platform"].dropna().unique()))
+    if platform != "All":
+        df = df[df["Platform"] == platform]
+
+    year = st.selectbox("Year", ["All"] + list(sorted(df["Year"].dropna().unique())))
+    if year != "All":
+        df = df[df["Year"] == year]
+
+    game = st.selectbox("Game", ["All"] + list(df["Name"].dropna().unique()))
+    if game != "All":
+        df = df[df["Name"] == game]
+
+    filtered = df
+
+# ================= BREADCRUMB =================
 st.markdown(f"""
 ### 🔍 Drill Path:
 **Genre → {genre} | Platform → {platform} | Year → {year} | Game → {game}**
 """)
 
-# ================= MENU =================
-menu = st.sidebar.radio("🎮 Navigation", [
-    "📌 Overview","📊 Dashboard","💰 Sales",
-    "🎮 Engagement","🧠 Insights","📈 ML Forecast",
-    "🧮 SQL Analysis","📥 Download","⚙️ Admin"
-])
-
 # ================= OVERVIEW =================
 if menu == "📌 Overview":
     st.title("🎮 Project Overview")
+
     st.markdown("""
     ### Video Game Sales & Engagement Analytics
 
@@ -117,7 +135,7 @@ elif menu == "📊 Dashboard":
 
 # ================= SALES =================
 elif menu == "💰 Sales":
-    st.title("💰 Sales Analysis")
+    st.title("💰 Sales")
 
     st.plotly_chart(px.bar(filtered, x="Platform", y="Global_Sales",
                            color="Genre", animation_frame="Year"))
@@ -156,10 +174,10 @@ elif menu == "📈 ML Forecast":
 
     future["Forecast"] = model.predict(future)
 
-    st.plotly_chart(px.line(df_ml, x="Year", y="Global_Sales", title="Past Sales"))
-    st.plotly_chart(px.line(future, x="Year", y="Forecast", title="Future Prediction"))
+    st.plotly_chart(px.line(df_ml, x="Year", y="Global_Sales", title="Past"))
+    st.plotly_chart(px.line(future, x="Year", y="Forecast", title="Forecast"))
 
-# ================= SQL ANALYSIS =================
+# ================= SQL =================
 elif menu == "🧮 SQL Analysis":
     st.title("🧮 SQL Analysis")
 
@@ -203,4 +221,4 @@ elif menu == "⚙️ Admin":
 
 # ================= FOOTER =================
 st.markdown("---")
-st.markdown("🔥 FINAL ULTRA PREMIUM DASHBOARD READY")
+st.markdown("🔥 FINAL CLEAN PROFESSIONAL DASHBOARD")
