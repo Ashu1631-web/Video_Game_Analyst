@@ -1,23 +1,26 @@
+# =========================================
+# 🎮 ULTRA PREMIUM FINAL APP (DRILL + ML)
+# =========================================
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import sqlite3
-from streamlit_option_menu import option_menu
+from sklearn.linear_model import LinearRegression
 
-# ================= CONFIG =================
-st.set_page_config(page_title="Game Analytics Pro", layout="wide")
+st.set_page_config(page_title="🎮 Game Analytics Ultra", layout="wide")
 
 # ================= LOGIN =================
 def login():
-    st.title("🔐 Login System")
+    st.title("🔐 Login")
     u = st.text_input("Username")
     p = st.text_input("Password", type="password")
     if st.button("Login"):
         if u == "admin" and p == "1234":
             st.session_state.auth = True
         else:
-            st.error("Invalid Credentials")
+            st.error("Invalid")
 
 if "auth" not in st.session_state:
     st.session_state.auth = False
@@ -26,7 +29,7 @@ if not st.session_state.auth:
     login()
     st.stop()
 
-# ================= LOAD DATA =================
+# ================= LOAD =================
 @st.cache_data
 def load():
     g = pd.read_csv("data/games.csv")
@@ -35,99 +38,126 @@ def load():
 
 games, sales = load()
 
-# ================= SQL SETUP =================
+# ================= SQL =================
 conn = sqlite3.connect("games.db", check_same_thread=False)
 games.to_sql("games", conn, if_exists="replace", index=False)
 sales.to_sql("vgsales", conn, if_exists="replace", index=False)
 
-# ================= FILTERS =================
-st.sidebar.header("Filters")
-genre = st.sidebar.multiselect("Genre", sales['Genre'].unique())
-year = st.sidebar.slider("Year", int(sales['Year'].min()), int(sales['Year'].max()), (2000, 2015))
-platform = st.sidebar.multiselect("Platform", sales['Platform'].unique())
+# ================= DRILL FILTER =================
+st.sidebar.title("🎯 Drill Down Filters")
 
-filtered = sales.copy()
-if genre:
-    filtered = filtered[filtered['Genre'].isin(genre)]
-if platform:
-    filtered = filtered[filtered['Platform'].isin(platform)]
-filtered = filtered[(filtered['Year']>=year[0]) & (filtered['Year']<=year[1])]
+selected_genre = st.sidebar.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
+df = sales.copy()
+if selected_genre != "All":
+    df = df[df["Genre"] == selected_genre]
+
+selected_platform = st.sidebar.selectbox("Platform", ["All"] + list(df["Platform"].dropna().unique()))
+if selected_platform != "All":
+    df = df[df["Platform"] == selected_platform]
+
+selected_year = st.sidebar.selectbox("Year", ["All"] + list(sorted(df["Year"].dropna().unique())))
+if selected_year != "All":
+    df = df[df["Year"] == selected_year]
+
+selected_game = st.sidebar.selectbox("Game", ["All"] + list(df["Name"].dropna().unique()))
+if selected_game != "All":
+    df = df[df["Name"] == selected_game]
+
+filtered = df
 
 # ================= MENU =================
-with st.sidebar:
-    selected = option_menu("Menu",
-        ["Dashboard","Sales","Engagement","Insights","SQL Analysis","Download","Admin"])
+menu = st.sidebar.radio("Menu",
+    ["Overview","Dashboard","Sales","Engagement","Insights","ML Forecast","SQL","Download","Admin"])
+
+# ================= OVERVIEW =================
+if menu == "Overview":
+    st.title("🎮 Project Overview")
+    st.write("Advanced Gaming Analytics Dashboard with ML + Drill Down")
 
 # ================= DASHBOARD =================
-if selected == "Dashboard":
+elif menu == "Dashboard":
     st.title("📊 Dashboard")
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Total Sales", round(filtered['Global_Sales'].sum(),2))
-    c2.metric("Avg Sales", round(filtered['Global_Sales'].mean(),2))
-    c3.metric("Top Genre", filtered.groupby('Genre')['Global_Sales'].sum().idxmax())
-    c4.metric("Top Platform", filtered.groupby('Platform')['Global_Sales'].sum().idxmax())
 
-    st.plotly_chart(px.line(filtered.groupby('Year')['Global_Sales'].sum().reset_index(), x='Year', y='Global_Sales'))
+    c1,c2,c3 = st.columns(3)
+    c1.metric("Sales", round(filtered['Global_Sales'].sum(),2))
+    c2.metric("Avg", round(filtered['Global_Sales'].mean(),2))
+    c3.metric("Games", len(filtered))
+
+    st.plotly_chart(px.line(filtered.groupby("Year")["Global_Sales"].sum().reset_index(),
+                             x="Year", y="Global_Sales", markers=True))
 
 # ================= SALES =================
-elif selected == "Sales":
-    st.title("💰 Sales Analysis")
+elif menu == "Sales":
+    st.title("💰 Sales")
 
-    st.plotly_chart(px.bar(filtered.groupby('Platform')['Global_Sales'].sum().reset_index(), x='Platform', y='Global_Sales'))
-    st.plotly_chart(px.pie(filtered, names='Genre', values='Global_Sales'))
-    st.plotly_chart(px.box(filtered, x='Genre', y='Global_Sales'))
-    st.plotly_chart(px.area(filtered.groupby('Year')['Global_Sales'].sum().reset_index(), x='Year', y='Global_Sales'))
-    st.plotly_chart(px.scatter(filtered, x='Year', y='Global_Sales', color='Genre'))
+    st.plotly_chart(px.bar(filtered, x="Platform", y="Global_Sales", color="Genre", animation_frame="Year"))
+    st.plotly_chart(px.pie(filtered, names="Genre", values="Global_Sales"))
+    st.plotly_chart(px.box(filtered, x="Genre", y="Global_Sales"))
 
 # ================= ENGAGEMENT =================
-elif selected == "Engagement":
+elif menu == "Engagement":
     st.title("🎮 Engagement")
 
-    st.plotly_chart(px.histogram(games, x='Rating'))
-    st.plotly_chart(px.scatter(games, x='Rating', y='Wishlist'))
-    st.plotly_chart(px.box(games, x='Genres', y='Rating'))
-    st.plotly_chart(px.bar(games.nlargest(10,'Wishlist'), x='Title', y='Wishlist'))
+    st.plotly_chart(px.histogram(games, x="Rating"))
+    st.plotly_chart(px.scatter(games, x="Rating", y="Wishlist"))
 
 # ================= INSIGHTS =================
-elif selected == "Insights":
+elif menu == "Insights":
     st.title("🧠 Insights")
-    merged = pd.merge(games, sales, left_on="Title", right_on="Name")
 
-    st.plotly_chart(px.scatter(merged, x='Rating', y='Global_Sales', color='Genre'))
-    st.plotly_chart(px.density_heatmap(merged, x='Genre', y='Platform'))
-    st.plotly_chart(px.sunburst(merged, path=['Genre','Platform'], values='Global_Sales'))
-    st.plotly_chart(px.treemap(merged, path=['Publisher','Genre'], values='Global_Sales'))
+    merged = pd.merge(games, sales, left_on="Title", right_on="Name")
+    st.plotly_chart(px.scatter(merged, x="Rating", y="Global_Sales", color="Genre"))
+
+# ================= ML FORECAST =================
+elif menu == "ML Forecast":
+    st.title("📈 Sales Forecast (ML)")
+
+    df_ml = sales.dropna(subset=["Year","Global_Sales"])
+    df_ml = df_ml.groupby("Year")["Global_Sales"].sum().reset_index()
+
+    X = df_ml[["Year"]]
+    y = df_ml["Global_Sales"]
+
+    model = LinearRegression()
+    model.fit(X, y)
+
+    future_years = pd.DataFrame({"Year": list(range(int(df_ml["Year"].max())+1, int(df_ml["Year"].max())+6))})
+    preds = model.predict(future_years)
+
+    future_years["Predicted_Sales"] = preds
+
+    st.plotly_chart(px.line(df_ml, x="Year", y="Global_Sales", title="Past Sales"))
+    st.plotly_chart(px.line(future_years, x="Year", y="Predicted_Sales", title="Forecast"))
 
 # ================= SQL =================
-elif selected == "SQL Analysis":
-    st.title("🧮 SQL Analysis")
+elif menu == "SQL":
+    st.title("SQL Analysis")
 
-    queries = {
-        "Top Platforms": "SELECT Platform, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Platform ORDER BY total_sales DESC",
-        "Top Publishers": "SELECT Publisher, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Publisher ORDER BY total_sales DESC LIMIT 10",
-        "Yearly Trend": "SELECT Year, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Year",
-        "Top Rated Games": "SELECT Title, Rating FROM games ORDER BY Rating DESC LIMIT 10",
-        "Wishlist vs Sales": "SELECT g.Title, g.Wishlist, v.Global_Sales FROM games g JOIN vgsales v ON g.Title = v.Name"
-    }
+    query = st.selectbox("Query", [
+        "Top Platforms","Top Publishers","Yearly Trend"
+    ])
 
-    choice = st.selectbox("Select Query", list(queries.keys()))
-    df = pd.read_sql(queries[choice], conn)
+    if query == "Top Platforms":
+        q = "SELECT Platform, SUM(Global_Sales) as sales FROM vgsales GROUP BY Platform"
+    elif query == "Top Publishers":
+        q = "SELECT Publisher, SUM(Global_Sales) as sales FROM vgsales GROUP BY Publisher"
+    else:
+        q = "SELECT Year, SUM(Global_Sales) as sales FROM vgsales GROUP BY Year"
 
-    st.dataframe(df)
-    st.plotly_chart(px.bar(df, x=df.columns[0], y=df.columns[1]), use_container_width=True)
+    df_sql = pd.read_sql(q, conn)
+    st.dataframe(df_sql)
+    st.plotly_chart(px.bar(df_sql, x=df_sql.columns[0], y=df_sql.columns[1]))
 
 # ================= DOWNLOAD =================
-elif selected == "Download":
-    st.title("📥 Download Data")
-    st.download_button("Download CSV", filtered.to_csv(index=False), "filtered_data.csv")
+elif menu == "Download":
+    st.download_button("Download CSV", filtered.to_csv(index=False))
 
 # ================= ADMIN =================
-elif selected == "Admin":
-    st.title("⚙️ Admin Panel")
+elif menu == "Admin":
     if st.button("Logout"):
-        st.session_state.auth=False
+        st.session_state.auth = False
         st.rerun()
 
 # ================= FOOTER =================
 st.markdown("---")
-st.markdown("🚀 Final Production Dashboard")
+st.markdown("🔥 Ultra Premium with ML + Drill Down")
