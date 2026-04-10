@@ -191,12 +191,26 @@ def main():
     if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
 
+    # 🔐 BEFORE LOGIN → HIDE SIDEBAR
     if not st.session_state['logged_in']:
+        st.markdown("""
+        <style>
+        section[data-testid="stSidebar"] {display: none;}
+        </style>
+        """, unsafe_allow_html=True)
         login_page()
+
+    # ✅ AFTER LOGIN → SHOW SIDEBAR
     else:
+        st.markdown("""
+        <style>
+        section[data-testid="stSidebar"] {display: block;}
+        </style>
+        """, unsafe_allow_html=True)
+
         df = load_data()
 
-        st.sidebar.title("Navigation")
+        st.sidebar.title("🎮 Navigation")
         page = st.sidebar.radio("Go to", ["Dashboard", "AI Insights", "Raw Data"])
 
         if page == "Dashboard":
@@ -207,6 +221,7 @@ def main():
             st.dataframe(df)
 
 if __name__ == "__main__":
+    main()
     main()
 
 # ============================== #
