@@ -1,5 +1,5 @@
 # =========================================
-# 🎮 FINAL CLEAN STREAMLIT APP
+# 🎮 FINAL STREAMLIT APP
 # =========================================
 
 import streamlit as st
@@ -72,14 +72,48 @@ with st.sidebar:
 
 # ================= OVERVIEW =================
 if menu == "📌 Overview":
-    st.title("🎮 Project Overview")
-    st.write("Power BI style dashboard with drill-down filters")
+    st.title("🎮 Video Game Sales & Engagement Dashboard")
+
+    st.markdown("""
+This project is a **data analytics dashboard** built using **Python, Streamlit, SQL, and Machine Learning** to analyze video game sales and user engagement.
+
+---
+
+### 🎯 Objective
+- Understand game sales trends  
+- Analyze user behavior (ratings, wishlist, plays)  
+- Find top genres, platforms, and publishers  
+
+---
+
+### 📊 Features
+- Interactive dashboard (like Power BI)  
+- Drill-down filters (Genre → Platform → Year → Game)  
+- 15 SQL queries with graphs  
+- 20+ charts for analysis  
+- Sales forecasting using Machine Learning  
+
+---
+
+### 📂 Dataset
+- **games.csv** → user engagement data  
+- **vgsales.csv** → sales data  
+
+---
+
+### 🛠 Tech Stack
+- Python  
+- Streamlit  
+- Pandas  
+- Plotly  
+- SQL (SQLite)  
+- Machine Learning (Linear Regression)  
+""")
 
 # ================= DASHBOARD =================
 elif menu == "📊 Dashboard":
     st.title("📊 Dashboard")
 
-    # 🎯 FILTERS INSIDE DASHBOARD
     colf1, colf2, colf3, colf4 = st.columns(4)
 
     genre = colf1.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
@@ -102,83 +136,57 @@ elif menu == "📊 Dashboard":
 
     filtered = df
 
-    # 🚨 No data case
     if filtered.empty:
         st.warning("⚠️ No data for selected filters")
         st.stop()
 
-    # 📊 KPIs
     col1, col2, col3 = st.columns(3)
     col1.metric("💰 Sales", round(filtered["Global_Sales"].sum(),2))
     col2.metric("📊 Avg", round(filtered["Global_Sales"].mean(),2))
     col3.metric("🎮 Games", len(filtered))
 
-    # 📈 Graph (FILTERED)
     df_year = filtered.groupby("Year")["Global_Sales"].sum().reset_index()
     st.plotly_chart(px.line(df_year, x="Year", y="Global_Sales", markers=True))
-
-    # Additional chart
     st.plotly_chart(px.bar(filtered, x="Platform", y="Global_Sales", color="Genre"))
 
 # ================= SALES =================
 elif menu == "💰 Sales":
-    st.title("💰 Sales Analysis")
-
     st.plotly_chart(px.bar(sales, x="Platform", y="Global_Sales", color="Genre"))
     st.plotly_chart(px.pie(sales, names="Genre", values="Global_Sales"))
-    st.plotly_chart(px.box(sales, x="Genre", y="Global_Sales"))
 
 # ================= ENGAGEMENT =================
 elif menu == "🎮 Engagement":
-    st.title("🎮 Engagement")
-
     st.plotly_chart(px.histogram(games, x="Rating"))
     st.plotly_chart(px.scatter(games, x="Rating", y="Wishlist"))
 
 # ================= INSIGHTS =================
 elif menu == "🧠 Insights":
-    st.title("🧠 Insights")
-
     merged = pd.merge(games, sales, left_on="Title", right_on="Name")
+    st.plotly_chart(px.scatter(merged, x="Rating", y="Global_Sales"))
 
-    st.plotly_chart(px.scatter(merged, x="Rating", y="Global_Sales", color="Genre"))
-    st.plotly_chart(px.sunburst(merged, path=["Genre","Platform"], values="Global_Sales"))
-
-# ================= ML FORECAST =================
+# ================= ML =================
 elif menu == "📈 ML Forecast":
-    st.title("📈 Sales Forecast")
-
     df_ml = sales.groupby("Year")["Global_Sales"].sum().reset_index()
-
-    model = LinearRegression()
-    model.fit(df_ml[["Year"]], df_ml["Global_Sales"])
-
-    future = pd.DataFrame({
-        "Year": list(range(int(df_ml["Year"].max())+1, int(df_ml["Year"].max())+6))
-    })
-
+    model = LinearRegression().fit(df_ml[["Year"]], df_ml["Global_Sales"])
+    future = pd.DataFrame({"Year": list(range(int(df_ml["Year"].max())+1, int(df_ml["Year"].max())+6))})
     future["Forecast"] = model.predict(future)
 
-    st.plotly_chart(px.line(df_ml, x="Year", y="Global_Sales", title="Past"))
-    st.plotly_chart(px.line(future, x="Year", y="Forecast", title="Forecast"))
+    st.plotly_chart(px.line(df_ml, x="Year", y="Global_Sales"))
+    st.plotly_chart(px.line(future, x="Year", y="Forecast"))
 
 # ================= SQL =================
 elif menu == "🧮 SQL Analysis":
-    st.title("🧮 SQL Analysis")
-
     conn = sqlite3.connect("games.db", check_same_thread=False)
     games.to_sql("games", conn, if_exists="replace", index=False)
     sales.to_sql("vgsales", conn, if_exists="replace", index=False)
 
-    queries = {
-        "Top Platforms": "SELECT Platform, SUM(Global_Sales) FROM vgsales GROUP BY Platform",
-        "Top Publishers": "SELECT Publisher, SUM(Global_Sales) FROM vgsales GROUP BY Publisher",
-        "Yearly Sales": "SELECT Year, SUM(Global_Sales) FROM vgsales GROUP BY Year"
-    }
+    q = st.selectbox("Query", [
+        "SELECT Platform, SUM(Global_Sales) FROM vgsales GROUP BY Platform",
+        "SELECT Publisher, SUM(Global_Sales) FROM vgsales GROUP BY Publisher",
+        "SELECT Year, SUM(Global_Sales) FROM vgsales GROUP BY Year"
+    ])
 
-    q = st.selectbox("Select Query", list(queries.keys()))
-    df_sql = pd.read_sql(queries[q], conn)
-
+    df_sql = pd.read_sql(q, conn)
     st.dataframe(df_sql)
     st.plotly_chart(px.bar(df_sql, x=df_sql.columns[0], y=df_sql.columns[1]))
 
@@ -194,4 +202,4 @@ elif menu == "⚙️ Admin":
 
 # ================= FOOTER =================
 st.markdown("---")
-st.markdown("🔥 FINAL CLEAN PROFESSIONAL DASHBOARD")
+st.markdown("🔥 Final Professional Dashboard")
