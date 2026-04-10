@@ -1,155 +1,137 @@
-# ======================================================
-# 🎮 GAME SALES PRO - FINAL CLEAN (NO ERRORS)
-# ======================================================
+# =========================================
+# 🎮 VIDEO GAME ANALYTICS - FINAL APP (FULL)
+# =========================================
 
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
-from io import BytesIO
+import sqlite3
+from streamlit_option_menu import option_menu
 
-# ---------------- CONFIG ----------------
-st.set_page_config(page_title="Game Sales Pro", layout="wide")
+# ================= CONFIG =================
+st.set_page_config(page_title="Game Analytics Pro", layout="wide")
 
-# ---------------- LOGIN ----------------
-def login_user(u, p):
-    return u == "admin" and p == "1234"
+# ================= LOGIN =================
+def login():
+    st.title("🔐 Login System")
+    u = st.text_input("Username")
+    p = st.text_input("Password", type="password")
+    if st.button("Login"):
+        if u == "admin" and p == "1234":
+            st.session_state.auth = True
+        else:
+            st.error("Invalid Credentials")
 
-# ---------------- LOAD DATA ----------------
+if "auth" not in st.session_state:
+    st.session_state.auth = False
+
+if not st.session_state.auth:
+    login()
+    st.stop()
+
+# ================= LOAD DATA =================
 @st.cache_data
-def load_data():
-    df = pd.read_csv("https://raw.githubusercontent.com/mwaskom/seaborn-data/master/games.csv")
-    df.dropna(inplace=True)
-    return df
+def load():
+    g = pd.read_csv("data/games.csv")
+    s = pd.read_csv("data/vgsales.csv")
+    return g, s
 
-# ---------------- EXPORT ----------------
-def to_excel(df):
-    output = BytesIO()
-    df.to_excel(output, index=False)
-    return output.getvalue()
+games, sales = load()
 
-# ---------------- LOGIN PAGE ----------------
-def login_page():
-    st.markdown("""
-    <style>
-    .stApp {background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);} 
-    .box {background: rgba(0,0,0,0.7); padding:40px; border-radius:20px; width:420px; margin:auto; margin-top:80px; text-align:center}
-    </style>
-    """, unsafe_allow_html=True)
+# ================= SQL SETUP =================
+conn = sqlite3.connect("games.db", check_same_thread=False)
+games.to_sql("games", conn, if_exists="replace", index=False)
+sales.to_sql("vgsales", conn, if_exists="replace", index=False)
 
-    st.markdown("<div class='box'>", unsafe_allow_html=True)
-    st.markdown("## 🎮 Video Game Sales Analysis")
-    st.markdown("### Secure Admin Access")
+# ================= FILTERS =================
+st.sidebar.header("Filters")
+genre = st.sidebar.multiselect("Genre", sales['Genre'].unique())
+year = st.sidebar.slider("Year", int(sales['Year'].min()), int(sales['Year'].max()), (2000, 2015))
+platform = st.sidebar.multiselect("Platform", sales['Platform'].unique())
 
-    with st.form("login_form"):
-        u = st.text_input("Username", key="login_user")
-        p = st.text_input("Password", type="password", key="login_pass")
-        submit = st.form_submit_button("Login")
+filtered = sales.copy()
+if genre:
+    filtered = filtered[filtered['Genre'].isin(genre)]
+if platform:
+    filtered = filtered[filtered['Platform'].isin(platform)]
+filtered = filtered[(filtered['Year']>=year[0]) & (filtered['Year']<=year[1])]
 
-        if submit:
-            if login_user(u, p):
-                st.session_state.logged_in = True
-                st.success("Welcome Admin ✅")
-                st.rerun()
-            else:
-                st.error("Invalid Credentials ❌")
+# ================= MENU =================
+with st.sidebar:
+    selected = option_menu("Menu",
+        ["Dashboard","Sales","Engagement","Insights","SQL Analysis","Download","Admin"])
 
-    st.markdown("</div>", unsafe_allow_html=True)
+# ================= DASHBOARD =================
+if selected == "Dashboard":
+    st.title("📊 Dashboard")
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("Total Sales", round(filtered['Global_Sales'].sum(),2))
+    c2.metric("Avg Sales", round(filtered['Global_Sales'].mean(),2))
+    c3.metric("Top Genre", filtered.groupby('Genre')['Global_Sales'].sum().idxmax())
+    c4.metric("Top Platform", filtered.groupby('Platform')['Global_Sales'].sum().idxmax())
 
-# ---------------- FILTER ----------------
-def apply_filters(df):
-    st.sidebar.header("Filters")
-    years = st.sidebar.multiselect("Year", sorted(df.Year.unique()), default=sorted(df.Year.unique()))
-    genres = st.sidebar.multiselect("Genre", df.Genre.unique(), default=df.Genre.unique())
-    platforms = st.sidebar.multiselect("Platform", df.Platform.unique(), default=df.Platform.unique())
+    st.plotly_chart(px.line(filtered.groupby('Year')['Global_Sales'].sum().reset_index(), x='Year', y='Global_Sales'))
 
-    return df[(df.Year.isin(years)) & (df.Genre.isin(genres)) & (df.Platform.isin(platforms))]
+# ================= SALES =================
+elif selected == "Sales":
+    st.title("💰 Sales Analysis")
 
-# ---------------- DASHBOARD ----------------
-def dashboard(df):
-    st.title("Dashboard")
+    st.plotly_chart(px.bar(filtered.groupby('Platform')['Global_Sales'].sum().reset_index(), x='Platform', y='Global_Sales'))
+    st.plotly_chart(px.pie(filtered, names='Genre', values='Global_Sales'))
+    st.plotly_chart(px.box(filtered, x='Genre', y='Global_Sales'))
+    st.plotly_chart(px.area(filtered.groupby('Year')['Global_Sales'].sum().reset_index(), x='Year', y='Global_Sales'))
+    st.plotly_chart(px.scatter(filtered, x='Year', y='Global_Sales', color='Genre'))
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Total Sales", round(df.Global_Sales.sum(), 2))
-    c2.metric("Games", len(df))
-    c3.metric("Platforms", df.Platform.nunique())
+# ================= ENGAGEMENT =================
+elif selected == "Engagement":
+    st.title("🎮 Engagement")
 
-    charts = [
-        px.bar(df, x="Genre", y="Global_Sales"),
-        px.line(df, x="Year", y="Global_Sales"),
-        px.pie(df, names="Platform"),
-        px.scatter(df, x="NA_Sales", y="EU_Sales"),
-        px.box(df, x="Genre", y="Global_Sales"),
-        px.histogram(df, x="Global_Sales"),
-        px.sunburst(df, path=["Genre", "Platform"], values="Global_Sales"),
-        px.area(df, x="Year", y="Global_Sales"),
-        px.violin(df, y="Global_Sales", x="Genre"),
-        px.treemap(df, path=["Platform", "Genre"], values="Global_Sales"),
-        px.scatter_3d(df, x="NA_Sales", y="EU_Sales", z="JP_Sales"),
-        px.density_heatmap(df, x="NA_Sales", y="EU_Sales"),
-        px.ecdf(df, x="Global_Sales"),
-        px.bar(df.groupby("Platform").sum(numeric_only=True).reset_index(), x="Platform", y="Global_Sales"),
-        px.line(df.groupby("Year").sum(numeric_only=True).reset_index(), x="Year", y="Global_Sales")
-    ]
+    st.plotly_chart(px.histogram(games, x='Rating'))
+    st.plotly_chart(px.scatter(games, x='Rating', y='Wishlist'))
+    st.plotly_chart(px.box(games, x='Genres', y='Rating'))
+    st.plotly_chart(px.bar(games.nlargest(10,'Wishlist'), x='Title', y='Wishlist'))
 
-    for fig in charts:
-        st.plotly_chart(fig, use_container_width=True)
+# ================= INSIGHTS =================
+elif selected == "Insights":
+    st.title("🧠 Insights")
+    merged = pd.merge(games, sales, left_on="Title", right_on="Name")
 
-# ---------------- SQL ----------------
-def sql_section(df):
-    st.title("SQL Analysis")
+    st.plotly_chart(px.scatter(merged, x='Rating', y='Global_Sales', color='Genre'))
+    st.plotly_chart(px.density_heatmap(merged, x='Genre', y='Platform'))
+    st.plotly_chart(px.sunburst(merged, path=['Genre','Platform'], values='Global_Sales'))
+    st.plotly_chart(px.treemap(merged, path=['Publisher','Genre'], values='Global_Sales'))
 
-    options = {
-        "Total Games": lambda: len(df),
-        "Total Sales": lambda: df.Global_Sales.sum(),
-        "Top 10": lambda: df.sort_values("Global_Sales", ascending=False).head(10),
-        "Genre Sales": lambda: df.groupby("Genre").Global_Sales.sum(),
-        "Year Trend": lambda: df.groupby("Year").Global_Sales.sum(),
-        "Top Platform": lambda: df.groupby("Platform").Global_Sales.sum().idxmax(),
-        "Average Sales": lambda: df.Global_Sales.mean(),
-        "NA vs EU": lambda: df[["NA_Sales", "EU_Sales"]].sum(),
-        "After 2010": lambda: df[df.Year > 2010],
-        "Max Game": lambda: df.loc[df.Global_Sales.idxmax()],
-        "Min Game": lambda: df.loc[df.Global_Sales.idxmin()],
-        "Genre Count": lambda: df.Genre.value_counts(),
-        "Platform Count": lambda: df.Platform.value_counts(),
-        "Top 3 Genre": lambda: df.groupby("Genre").Global_Sales.sum().nlargest(3),
-        "Year Count": lambda: df.Year.value_counts()
+# ================= SQL =================
+elif selected == "SQL Analysis":
+    st.title("🧮 SQL Analysis")
+
+    queries = {
+        "Top Platforms": "SELECT Platform, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Platform ORDER BY total_sales DESC",
+        "Top Publishers": "SELECT Publisher, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Publisher ORDER BY total_sales DESC LIMIT 10",
+        "Yearly Trend": "SELECT Year, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Year",
+        "Top Rated Games": "SELECT Title, Rating FROM games ORDER BY Rating DESC LIMIT 10",
+        "Wishlist vs Sales": "SELECT g.Title, g.Wishlist, v.Global_Sales FROM games g JOIN vgsales v ON g.Title = v.Name"
     }
 
-    choice = st.selectbox("Select Query", list(options.keys()))
-    st.write(options[choice]())
+    choice = st.selectbox("Select Query", list(queries.keys()))
+    df = pd.read_sql(queries[choice], conn)
 
-# ---------------- AI ----------------
-def ai_section(df):
-    st.title("AI Insights")
-    st.success(f"Top Genre: {df.groupby('Genre').Global_Sales.sum().idxmax()}")
-    st.info(f"Average Sales: {round(df.Global_Sales.mean(), 2)}")
+    st.dataframe(df)
+    st.plotly_chart(px.bar(df, x=df.columns[0], y=df.columns[1]), use_container_width=True)
 
-# ---------------- MAIN ----------------
-def main():
-    if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
+# ================= DOWNLOAD =================
+elif selected == "Download":
+    st.title("📥 Download Data")
+    st.download_button("Download CSV", filtered.to_csv(index=False), "filtered_data.csv")
 
-    if not st.session_state.logged_in:
-        st.markdown("<style>section[data-testid='stSidebar']{display:none}</style>", unsafe_allow_html=True)
-        login_page()
-        return
+# ================= ADMIN =================
+elif selected == "Admin":
+    st.title("⚙️ Admin Panel")
+    if st.button("Logout"):
+        st.session_state.auth=False
+        st.rerun()
 
-    df = load_data()
-    df = apply_filters(df)
-
-    st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go", ["Dashboard", "SQL", "AI", "Export"])
-
-    if page == "Dashboard":
-        dashboard(df)
-    elif page == "SQL":
-        sql_section(df)
-    elif page == "AI":
-        ai_section(df)
-    elif page == "Export":
-        st.download_button("Download Excel", to_excel(df), "data.xlsx")
-
-# ---------------- RUN ----------------
-if __name__ == "__main__":
-    main()
+# ================= FOOTER =================
+st.markdown("---")
+st.markdown("🚀 Final Production Dashboard")
