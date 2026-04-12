@@ -1,5 +1,5 @@
 # =========================================
-# 🎮 FINAL ULTRA DASHBOARD APP
+# 🎮 FINAL ULTRA DASHBOARD APP (PREMIUM UI)
 # =========================================
 
 import streamlit as st
@@ -23,6 +23,28 @@ footer {visibility:hidden;}
 </style>
 """, unsafe_allow_html=True)
 
+# ================= PREMIUM UI =================
+st.markdown("""
+<style>
+
+/* ORANGE GRADIENT AFTER LOGIN */
+.stApp {
+    background: linear-gradient(135deg, #ff7e00, #ff3c00);
+}
+
+/* GLASS CARD */
+.card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 # ================= LOGIN =================
 def login():
     st.markdown("## 🔐 Gaming Login")
@@ -41,14 +63,27 @@ if not st.session_state.auth:
     <style>
     [data-testid="stSidebar"] {display:none;}
     .stApp {
-        background-image:url("https://images.unsplash.com/photo-1601987177651-8edfe6c20009?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NzF8fGdhbWV8ZW58MHx8MHx8fDA%3D");
+        background-image:url("https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?q=80&w=1974");
         background-size:cover;
+        background-position:center;
     }
     </style>
     """, unsafe_allow_html=True)
 
     login()
     st.stop()
+
+# ================= PREMIUM FUNCTION =================
+def premium(fig):
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"),
+        title_font=dict(size=20),
+        transition_duration=500
+    )
+    return fig
 
 # ================= LOAD DATA =================
 @st.cache_data
@@ -63,142 +98,103 @@ with st.sidebar:
     menu = st.radio("", [
         "📌 Overview","📊 Dashboard","💰 Sales",
         "🎮 Engagement","🧠 Insights","📈 ML Forecast",
-        "🧮 SQL Analysis","📥 Download","⚙️ Admin"
+        "🧮 SQL Analysis"
     ])
 
 # ================= OVERVIEW =================
 if menu == "📌 Overview":
-    st.title("🎮 Video Game Sales & Engagement Dashboard")
-    st.markdown("""
-This project is a **data analytics dashboard** using Python, Streamlit, SQL, and Machine Learning.
-
-### 🎯 Objective
-- Analyze sales trends  
-- Study user behavior  
-- Identify top genres/platforms  
-
-### 📊 Features
-- Interactive dashboard  
-- Drill-down filters  
-- 15 SQL queries  
-- 20+ charts  
-- ML forecasting  
-
-### 📂 Dataset
-- games.csv  
-- vgsales.csv  
-
-### 🛠 Tech Stack
-Python | Streamlit | Pandas | Plotly | SQL | ML
-""")
+    st.title("🎮 Video Game Dashboard")
+    st.info("Premium Gaming Analytics UI 🚀")
 
 # ================= DASHBOARD =================
 elif menu == "📊 Dashboard":
+
     st.title("📊 Advanced Dashboard")
 
-    # FILTERS
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2 = st.columns(2)
 
-    genre = c1.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
-    df = sales.copy()
-    if genre != "All":
-        df = df[df["Genre"] == genre]
+    with c1:
+        fig = px.bar(sales, x="Platform", y="Global_Sales", title="Sales by Platform")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    platform = c2.selectbox("Platform", ["All"] + list(df["Platform"].dropna().unique()))
-    if platform != "All":
-        df = df[df["Platform"] == platform]
-
-    year = c3.selectbox("Year", ["All"] + list(sorted(df["Year"].dropna().unique())))
-    if year != "All":
-        df = df[df["Year"] == year]
-
-    game = c4.selectbox("Game", ["All"] + list(df["Name"].dropna().unique()))
-    if game != "All":
-        df = df[df["Name"] == game]
-
-    filtered = df
-
-    if filtered.empty:
-        st.warning("⚠️ No data for selected filters")
-        st.stop()
-
-    # KPI
-    k1, k2, k3 = st.columns(3)
-    k1.metric("💰 Sales", round(filtered["Global_Sales"].sum(),2))
-    k2.metric("📊 Avg", round(filtered["Global_Sales"].mean(),2))
-    k3.metric("🎮 Games", len(filtered))
-
-    st.markdown("---")
-
-    # 15 GRAPHS
-    st.plotly_chart(px.bar(filtered, x="Platform", y="Global_Sales", title="1. Sales by Platform"))
-    st.plotly_chart(px.bar(filtered, x="Genre", y="Global_Sales", title="2. Sales by Genre"))
-
-    df_year = filtered.groupby("Year")["Global_Sales"].sum().reset_index()
-    st.plotly_chart(px.line(df_year, x="Year", y="Global_Sales", markers=True, title="3. Yearly Trend"))
-
-    st.plotly_chart(px.pie(filtered, names="Genre", values="Global_Sales", title="4. Genre Distribution"))
-    st.plotly_chart(px.pie(filtered, names="Platform", values="Global_Sales", title="5. Platform Distribution"))
-
-    st.plotly_chart(px.box(filtered, x="Genre", y="Global_Sales", title="6. Box Plot"))
-    st.plotly_chart(px.histogram(filtered, x="Global_Sales", title="7. Sales Histogram"))
-
-    top = filtered.sort_values("Global_Sales", ascending=False).head(10)
-    st.plotly_chart(px.bar(top, x="Name", y="Global_Sales", title="8. Top Games"))
-
-    pub = filtered.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10)
-    st.plotly_chart(px.bar(pub, x="Publisher", y="Global_Sales", title="9. Publisher Sales"))
-
-    st.plotly_chart(px.bar(filtered, x="Platform", y="NA_Sales", title="10. NA Sales"))
-    st.plotly_chart(px.bar(filtered, x="Platform", y="EU_Sales", title="11. EU Sales"))
-    st.plotly_chart(px.bar(filtered, x="Platform", y="JP_Sales", title="12. JP Sales"))
-    st.plotly_chart(px.bar(filtered, x="Platform", y="Other_Sales", title="13. Other Sales"))
-
-    st.plotly_chart(px.scatter(filtered, x="Year", y="Global_Sales", title="14. Year vs Sales"))
-    st.plotly_chart(px.density_heatmap(filtered, x="Genre", y="Platform", title="15. Heatmap"))
+    with c2:
+        fig = px.bar(sales, x="Genre", y="Global_Sales", title="Sales by Genre")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= SALES =================
 elif menu == "💰 Sales":
+
     st.title("💰 Sales Analysis")
 
-    if sales.empty:
-        st.warning("No sales data available")
-        st.stop()
+    col1, col2 = st.columns(2)
 
-    st.plotly_chart(px.bar(sales, x="Platform", y="Global_Sales"))
-    st.plotly_chart(px.pie(sales, names="Genre", values="Global_Sales"))
-    st.plotly_chart(px.box(sales, x="Genre", y="Global_Sales"))
+    with col1:
+        fig = px.pie(sales, names="Genre", values="Global_Sales")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        fig = px.box(sales, x="Genre", y="Global_Sales")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= ENGAGEMENT =================
 elif menu == "🎮 Engagement":
-    st.title("🎮 Engagement Analysis")
 
-    if games.empty:
-        st.warning("No engagement data available")
-        st.stop()
+    st.title("🎮 Engagement")
 
-    st.plotly_chart(px.histogram(games, x="Rating"))
-    st.plotly_chart(px.scatter(games, x="Rating", y="Wishlist"))
+    col1, col2 = st.columns(2)
+
+    with col1:
+        fig = px.histogram(games, x="Rating")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        fig = px.scatter(games, x="Rating", y="Wishlist")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= INSIGHTS =================
 elif menu == "🧠 Insights":
-    st.title("🧠 Insights Analysis")
 
-    if "Title" in games.columns and "Name" in sales.columns:
-        merged = pd.merge(games, sales, left_on="Title", right_on="Name", how="inner")
-    else:
-        st.error("Column mismatch (Title / Name)")
-        st.stop()
+    st.title("🧠 Insights")
 
-    if merged.empty:
-        st.warning("⚠️ No matching data between datasets")
-        st.stop()
+    merged = pd.merge(games, sales, left_on="Title", right_on="Name")
 
-    st.plotly_chart(px.scatter(merged, x="Rating", y="Global_Sales", color="Genre"))
-    st.plotly_chart(px.sunburst(merged, path=["Genre","Platform"], values="Global_Sales"))
+    col1, col2 = st.columns(2)
+
+    with col1:
+        fig = px.scatter(merged, x="Rating", y="Global_Sales")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        fig = px.sunburst(merged, path=["Genre", "Platform"], values="Global_Sales")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= ML =================
 elif menu == "📈 ML Forecast":
+
     st.title("📈 Forecast")
 
     df_ml = sales.groupby("Year")["Global_Sales"].sum().reset_index()
@@ -207,62 +203,36 @@ elif menu == "📈 ML Forecast":
     future = pd.DataFrame({"Year": list(range(int(df_ml["Year"].max())+1, int(df_ml["Year"].max())+6))})
     future["Forecast"] = model.predict(future)
 
-    st.plotly_chart(px.line(df_ml, x="Year", y="Global_Sales"))
-    st.plotly_chart(px.line(future, x="Year", y="Forecast"))
+    col1, col2 = st.columns(2)
+
+    with col1:
+        fig = px.line(df_ml, x="Year", y="Global_Sales")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        fig = px.line(future, x="Year", y="Forecast")
+        fig = premium(fig)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= SQL =================
 elif menu == "🧮 SQL Analysis":
-    st.title("🧮 SQL Analysis Dashboard")
+
+    st.title("🧮 SQL Analysis")
 
     conn = sqlite3.connect("games.db", check_same_thread=False)
     games.to_sql("games", conn, if_exists="replace", index=False)
     sales.to_sql("vgsales", conn, if_exists="replace", index=False)
 
-    queries = {
-        "1. Top Rated Games": "SELECT Title, Rating FROM games ORDER BY Rating DESC LIMIT 10",
-        "2. Most Wishlisted Games": "SELECT Title, Wishlist FROM games ORDER BY Wishlist DESC LIMIT 10",
-        "3. Avg Rating by Genre": "SELECT Genres, AVG(Rating) as avg_rating FROM games GROUP BY Genres",
-        "4. Most Played Games": "SELECT Title, Plays FROM games ORDER BY Plays DESC LIMIT 10",
-        "5. Developer Performance": "SELECT Team, AVG(Rating) as avg_rating FROM games GROUP BY Team",
+    df_sql = pd.read_sql("SELECT Platform, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Platform", conn)
 
-        "6. Sales by Platform": "SELECT Platform, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Platform",
-        "7. Top Publishers": "SELECT Publisher, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Publisher ORDER BY total_sales DESC LIMIT 10",
-        "8. Yearly Sales Trend": "SELECT Year, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Year",
-        "9. Regional Sales Comparison": "SELECT SUM(NA_Sales) as NA, SUM(EU_Sales) as EU, SUM(JP_Sales) as JP FROM vgsales",
-        "10. Top Selling Games": "SELECT Name, Global_Sales FROM vgsales ORDER BY Global_Sales DESC LIMIT 10",
+    fig = px.bar(df_sql, x="Platform", y="total_sales")
+    fig = premium(fig)
 
-        "11. Rating vs Sales": "SELECT g.Title, g.Rating, v.Global_Sales FROM games g JOIN vgsales v ON g.Title = v.Name",
-        "12. Genre-wise Sales": "SELECT Genre, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Genre",
-        "13. Platform Rating Analysis": "SELECT v.Platform, AVG(g.Rating) as avg_rating FROM games g JOIN vgsales v ON g.Title = v.Name GROUP BY v.Platform",
-        "14. Wishlist vs Sales": "SELECT g.Title, g.Wishlist, v.Global_Sales FROM games g JOIN vgsales v ON g.Title = v.Name",
-        "15. Genre + Platform Performance": "SELECT Genre, Platform, SUM(Global_Sales) as total_sales FROM vgsales GROUP BY Genre, Platform"
-    }
-
-    selected_query = st.selectbox("📌 Select Analysis", list(queries.keys()))
-    df_sql = pd.read_sql(queries[selected_query], conn)
-
-    st.dataframe(df_sql)
-
-    if selected_query == "8. Yearly Sales Trend":
-        fig = px.line(df_sql, x="Year", y="total_sales", markers=True)
-    elif selected_query == "9. Regional Sales Comparison":
-        df_melt = df_sql.melt(var_name="Region", value_name="Sales")
-        fig = px.pie(df_melt, names="Region", values="Sales")
-    elif selected_query in ["11. Rating vs Sales", "14. Wishlist vs Sales"]:
-        fig = px.scatter(df_sql, x=df_sql.columns[1], y=df_sql.columns[2])
-    elif selected_query == "15. Genre + Platform Performance":
-        fig = px.sunburst(df_sql, path=["Genre", "Platform"], values="total_sales")
-    else:
-        fig = px.bar(df_sql, x=df_sql.columns[0], y=df_sql.columns[1])
-
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.plotly_chart(fig, use_container_width=True)
-
-# ================= DOWNLOAD =================
-elif menu == "📥 Download":
-    st.download_button("Download CSV", sales.to_csv(index=False))
-
-# ================= ADMIN =================
-elif menu == "⚙️ Admin":
-    if st.button("Logout"):
-        st.session_state.auth = False
-        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
