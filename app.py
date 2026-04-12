@@ -1,3 +1,7 @@
+# =========================================
+# 🎮 FINAL ULTRA DASHBOARD (ALL FEATURES)
+# =========================================
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -9,6 +13,32 @@ st.set_page_config(page_title="🎮 Game Analytics Pro", layout="wide")
 # ================= SESSION =================
 if "auth" not in st.session_state:
     st.session_state.auth = False
+
+# ================= GLOBAL UI =================
+st.markdown("""
+<style>
+
+/* ORANGE GRADIENT AFTER LOGIN */
+.stApp {
+    background: linear-gradient(135deg, #ff7e00, #ff3c00);
+}
+
+/* GLASS CARD */
+.card {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+}
+
+/* Hide default */
+#MainMenu {visibility:hidden;}
+footer {visibility:hidden;}
+
+</style>
+""", unsafe_allow_html=True)
 
 # ================= LOGIN =================
 def login():
@@ -26,24 +56,28 @@ def login():
 if not st.session_state.auth:
     st.markdown("""
     <style>
+    [data-testid="stSidebar"] {display:none;}
     .stApp {
-        background-image:url("https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?q=80");
+        background-image:url("https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?q=80&w=1974");
         background-size:cover;
     }
     </style>
     """, unsafe_allow_html=True)
+
     login()
     st.stop()
 
-# ================= UI =================
+# ================= PREMIUM FUNCTION =================
 def premium(fig):
     fig.update_layout(
         template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         transition_duration=500
     )
     return fig
 
-# ================= LOAD =================
+# ================= LOAD DATA =================
 @st.cache_data
 def load():
     return pd.read_csv("data/games.csv"), pd.read_csv("data/vgsales.csv")
@@ -60,7 +94,7 @@ with st.sidebar:
 
 # ================= OVERVIEW =================
 if menu == "📌 Overview":
-    st.title("🎮 Game Analytics Dashboard")
+    st.title("🎮 Game Analytics Pro")
 
 # ================= DASHBOARD =================
 elif menu == "📊 Dashboard":
@@ -78,53 +112,57 @@ elif menu == "📊 Dashboard":
     if year!="All": df=df[df["Year"]==year]
 
     charts = [
-        px.bar(df,x="Platform",y="Global_Sales",title="1 Platform Sales"),
-        px.bar(df,x="Genre",y="Global_Sales",title="2 Genre Sales"),
-        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales",title="3 Year Trend"),
-        px.pie(df,names="Genre",values="Global_Sales",title="4 Genre Dist"),
-        px.box(df,x="Genre",y="Global_Sales",title="5 Box"),
-        px.histogram(df,x="Global_Sales",title="6 Histogram"),
-        px.scatter(df,x="Year",y="Global_Sales",title="7 Scatter"),
-        px.bar(df.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10),x="Publisher",y="Global_Sales",title="8 Publisher"),
-        px.bar(df,x="Platform",y="NA_Sales",title="9 NA"),
-        px.bar(df,x="Platform",y="EU_Sales",title="10 EU"),
+        px.bar(df,x="Platform",y="Global_Sales",title="1. Platform Sales"),
+        px.bar(df,x="Genre",y="Global_Sales",title="2. Genre Sales"),
+        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales",title="3. Year Trend"),
+        px.pie(df,names="Genre",values="Global_Sales",title="4. Genre Distribution"),
+        px.box(df,x="Genre",y="Global_Sales",title="5. Box Plot"),
+        px.histogram(df,x="Global_Sales",title="6. Histogram"),
+        px.scatter(df,x="Year",y="Global_Sales",title="7. Scatter Plot"),
+        px.bar(df.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10),x="Publisher",y="Global_Sales",title="8. Top Publishers"),
+        px.bar(df,x="Platform",y="NA_Sales",title="9. NA Sales"),
+        px.bar(df,x="Platform",y="EU_Sales",title="10. EU Sales")
     ]
 
     col1,col2 = st.columns(2)
     for i,fig in enumerate(charts):
         with col1 if i%2==0 else col2:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.plotly_chart(premium(fig),use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= SALES =================
 elif menu == "💰 Sales":
 
-    st.title("💰 Sales")
+    st.title("💰 Sales Analysis")
 
     genre = st.selectbox("Genre", ["All"] + list(sales["Genre"].unique()))
     df = sales if genre=="All" else sales[sales["Genre"]==genre]
 
     charts = [
-        px.bar(df,x="Platform",y="Global_Sales"),
-        px.pie(df,names="Genre",values="Global_Sales"),
-        px.box(df,x="Genre",y="Global_Sales"),
-        px.histogram(df,x="Global_Sales"),
-        px.scatter(df,x="Year",y="Global_Sales"),
-        px.bar(df,x="Platform",y="NA_Sales"),
-        px.bar(df,x="Platform",y="EU_Sales"),
-        px.bar(df,x="Platform",y="JP_Sales"),
-        px.bar(df,x="Platform",y="Other_Sales"),
-        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales")
+        px.bar(df,x="Platform",y="Global_Sales",title="1. Platform Sales"),
+        px.pie(df,names="Genre",values="Global_Sales",title="2. Genre"),
+        px.box(df,x="Genre",y="Global_Sales",title="3. Box"),
+        px.histogram(df,x="Global_Sales",title="4. Histogram"),
+        px.scatter(df,x="Year",y="Global_Sales",title="5. Scatter"),
+        px.bar(df,x="Platform",y="NA_Sales",title="6. NA"),
+        px.bar(df,x="Platform",y="EU_Sales",title="7. EU"),
+        px.bar(df,x="Platform",y="JP_Sales",title="8. JP"),
+        px.bar(df,x="Platform",y="Other_Sales",title="9. Other"),
+        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales",title="10. Trend")
     ]
 
     col1,col2 = st.columns(2)
     for i,fig in enumerate(charts):
         with col1 if i%2==0 else col2:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.plotly_chart(premium(fig),use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= SQL =================
 elif menu == "🧮 SQL Analysis":
 
-    st.title("🧮 SQL")
+    st.title("🧮 SQL Analysis (15 Queries)")
 
     conn = sqlite3.connect("games.db")
     games.to_sql("games",conn,if_exists="replace",index=False)
@@ -152,4 +190,7 @@ elif menu == "🧮 SQL Analysis":
 
     q = st.selectbox("Select Query", list(queries.keys()))
     df_sql = pd.read_sql(queries[q],conn)
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.dataframe(df_sql)
+    st.markdown('</div>', unsafe_allow_html=True)
