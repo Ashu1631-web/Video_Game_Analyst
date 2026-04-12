@@ -117,18 +117,19 @@ elif menu == "📊 Dashboard":
     if year!="All": df=df[df["Year"]==year]
 
     charts = [
-        px.bar(df,x="Platform",y="Global_Sales"),
-        px.bar(df,x="Genre",y="Global_Sales"),
-        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales"),
-        px.pie(df,names="Genre",values="Global_Sales"),
-        px.box(df,x="Genre",y="Global_Sales"),
-        px.histogram(df,x="Global_Sales"),
-        px.scatter(df,x="Year",y="Global_Sales"),
-        px.bar(df.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10),
-               x="Publisher",y="Global_Sales"),
-        px.bar(df,x="Platform",y="NA_Sales"),
-        px.bar(df,x="Platform",y="EU_Sales"),
-    ]
+    px.bar(df,x="Platform",y="Global_Sales",title="🎮 Sales by Platform"),
+    px.bar(df,x="Genre",y="Global_Sales",title="📊 Sales by Genre"),
+    px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),
+            x="Year",y="Global_Sales",title="📈 Yearly Sales Trend"),
+    px.pie(df,names="Genre",values="Global_Sales",title="🥧 Genre Distribution"),
+    px.box(df,x="Genre",y="Global_Sales",title="📦 Sales Spread by Genre"),
+    px.histogram(df,x="Global_Sales",title="📉 Sales Distribution"),
+    px.scatter(df,x="Year",y="Global_Sales",title="🔍 Year vs Sales"),
+    px.bar(df.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10),
+           x="Publisher",y="Global_Sales",title="🏆 Top Publishers"),
+    px.bar(df,x="Platform",y="NA_Sales",title="🌎 NA Sales"),
+    px.bar(df,x="Platform",y="EU_Sales",title="🌍 EU Sales"),
+]
 
     col1,col2 = st.columns(2)
     for i,fig in enumerate(charts):
@@ -158,18 +159,18 @@ elif menu == "💰 Sales":
         df = df[df["Year"] == year]
 
     charts = [
-        px.bar(df,x="Platform",y="Global_Sales"),
-        px.pie(df,names="Genre",values="Global_Sales"),
-        px.box(df,x="Genre",y="Global_Sales"),
-        px.histogram(df,x="Global_Sales"),
-        px.scatter(df,x="Year",y="Global_Sales"),
-        px.bar(df,x="Platform",y="NA_Sales"),
-        px.bar(df,x="Platform",y="EU_Sales"),
-        px.bar(df,x="Platform",y="JP_Sales"),
-        px.bar(df,x="Platform",y="Other_Sales"),
-        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),
-                x="Year",y="Global_Sales"),
-    ]
+    px.bar(df,x="Platform",y="Global_Sales",title="🎮 Global Sales by Platform"),
+    px.pie(df,names="Genre",values="Global_Sales",title="🥧 Genre Share"),
+    px.box(df,x="Genre",y="Global_Sales",title="📦 Genre Sales Spread"),
+    px.histogram(df,x="Global_Sales",title="📉 Sales Distribution"),
+    px.scatter(df,x="Year",y="Global_Sales",title="📈 Sales Over Time"),
+    px.bar(df,x="Platform",y="NA_Sales",title="🌎 North America Sales"),
+    px.bar(df,x="Platform",y="EU_Sales",title="🌍 Europe Sales"),
+    px.bar(df,x="Platform",y="JP_Sales",title="🗾 Japan Sales"),
+    px.bar(df,x="Platform",y="Other_Sales",title="🌐 Other Region Sales"),
+    px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),
+            x="Year",y="Global_Sales",title="📊 Yearly Sales Trend"),
+]
 
     col1,col2 = st.columns(2)
     for i,fig in enumerate(charts):
