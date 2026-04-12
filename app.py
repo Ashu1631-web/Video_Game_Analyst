@@ -1,42 +1,38 @@
-# =========================================
-# 🎮 FINAL ULTRA DASHBOARD (ALL FEATURES)
-# =========================================
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import sqlite3
 from sklearn.linear_model import LinearRegression
 
-st.set_page_config(page_title="🎮 Video Game & Sales Analytics", layout="wide")
+st.set_page_config(page_title="🎮 Game Analytics Pro", layout="wide")
 
 # ================= SESSION =================
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
-# ================= GLOBAL UI =================
+# ================= REMOVE EXTRA MENU =================
 st.markdown("""
 <style>
+[data-testid="stSidebarNav"] {display:none;}
+section[data-testid="stSidebar"] ul {display:none;}
+#MainMenu {visibility:hidden;}
+footer {visibility:hidden;}
+</style>
+""", unsafe_allow_html=True)
 
-/* ORANGE GRADIENT AFTER LOGIN */
+# ================= DARK BACKGROUND =================
+st.markdown("""
+<style>
 .stApp {
-    background: linear-gradient(135deg, #ff7e00, #ff3c00);
+    background-color: #0e1117;
 }
-
-/* GLASS CARD */
 .card {
     background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(10px);
     padding: 15px;
     border-radius: 12px;
     margin-bottom: 10px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.3);
 }
-
-/* Hide default */
-#MainMenu {visibility:hidden;}
-footer {visibility:hidden;}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -56,28 +52,21 @@ def login():
 if not st.session_state.auth:
     st.markdown("""
     <style>
-    [data-testid="stSidebar"] {display:none;}
     .stApp {
-        background-image:url("https://images.unsplash.com/photo-1602620502036-e52519d58d92?q=80&w=1032&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
+        background-image:url("https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?q=80");
         background-size:cover;
     }
     </style>
     """, unsafe_allow_html=True)
-
     login()
     st.stop()
 
-# ================= PREMIUM FUNCTION =================
+# ================= PREMIUM =================
 def premium(fig):
-    fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        transition_duration=500
-    )
+    fig.update_layout(template="plotly_dark", transition_duration=500)
     return fig
 
-# ================= LOAD DATA =================
+# ================= LOAD =================
 @st.cache_data
 def load():
     return pd.read_csv("data/games.csv"), pd.read_csv("data/vgsales.csv")
@@ -97,43 +86,28 @@ if menu == "📌 Overview":
     st.title("🎮 Video Game & Sales Analytics")
 
     st.markdown("""
-    ### 📌 Project Overview
+### 📌 Project Overview
 
-    This project is a **Gaming Analytics Dashboard** built using:
-    - Python 🐍
-    - Streamlit 🚀
-    - SQL 🧮
-    - Machine Learning 📈
+Gaming Analytics Dashboard using:
+- Python
+- Streamlit
+- SQL
+- Machine Learning
 
-    ---
+### 🎯 Objective
+- Analyze sales trends  
+- Compare platform & genre  
+- Understand regional sales  
 
-    ### 🎯 Objective
-    - Analyze video game sales trends  
-    - Compare platform & genre performance  
-    - Understand regional sales  
-    - Generate insights using data  
+### 📊 Features
+✔ 10+ Graphs  
+✔ Filters  
+✔ ML Forecast  
+✔ SQL Analysis  
 
-    ---
-
-    ### 📊 Features
-    ✔ Interactive Dashboard  
-    ✔ 10+ Graphs with Filters  
-    ✔ Sales Analysis  
-    ✔ Engagement Insights  
-    ✔ ML Forecasting  
-    ✔ 15 SQL Queries  
-
-    ---
-
-    ### 📂 Dataset
-    - games.csv → Game engagement data  
-    - vgsales.csv → Global sales data  
-
-    ---
-
-    ### 🛠 Tech Stack
-    Python | Pandas | Plotly | Streamlit | SQLite | Scikit-learn
-    """)
+### 🛠 Tech Stack
+Python | Pandas | Plotly | Streamlit
+""")
 
 # ================= DASHBOARD =================
 elif menu == "📊 Dashboard":
@@ -151,16 +125,16 @@ elif menu == "📊 Dashboard":
     if year!="All": df=df[df["Year"]==year]
 
     charts = [
-        px.bar(df,x="Platform",y="Global_Sales",title="1. Platform Sales"),
-        px.bar(df,x="Genre",y="Global_Sales",title="2. Genre Sales"),
-        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales",title="3. Year Trend"),
-        px.pie(df,names="Genre",values="Global_Sales",title="4. Genre Distribution"),
-        px.box(df,x="Genre",y="Global_Sales",title="5. Box Plot"),
-        px.histogram(df,x="Global_Sales",title="6. Histogram"),
-        px.scatter(df,x="Year",y="Global_Sales",title="7. Scatter Plot"),
-        px.bar(df.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10),x="Publisher",y="Global_Sales",title="8. Top Publishers"),
-        px.bar(df,x="Platform",y="NA_Sales",title="9. NA Sales"),
-        px.bar(df,x="Platform",y="EU_Sales",title="10. EU Sales")
+        px.bar(df,x="Platform",y="Global_Sales",title="1 Platform"),
+        px.bar(df,x="Genre",y="Global_Sales",title="2 Genre"),
+        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales",title="3 Trend"),
+        px.pie(df,names="Genre",values="Global_Sales",title="4 Dist"),
+        px.box(df,x="Genre",y="Global_Sales",title="5 Box"),
+        px.histogram(df,x="Global_Sales",title="6 Histogram"),
+        px.scatter(df,x="Year",y="Global_Sales",title="7 Scatter"),
+        px.bar(df.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10),x="Publisher",y="Global_Sales",title="8 Publisher"),
+        px.bar(df,x="Platform",y="NA_Sales",title="9 NA"),
+        px.bar(df,x="Platform",y="EU_Sales",title="10 EU"),
     ]
 
     col1,col2 = st.columns(2)
@@ -173,22 +147,22 @@ elif menu == "📊 Dashboard":
 # ================= SALES =================
 elif menu == "💰 Sales":
 
-    st.title("💰 Sales Analysis")
+    st.title("💰 Sales")
 
     genre = st.selectbox("Genre", ["All"] + list(sales["Genre"].unique()))
     df = sales if genre=="All" else sales[sales["Genre"]==genre]
 
     charts = [
-        px.bar(df,x="Platform",y="Global_Sales",title="1. Platform Sales"),
-        px.pie(df,names="Genre",values="Global_Sales",title="2. Genre"),
-        px.box(df,x="Genre",y="Global_Sales",title="3. Box"),
-        px.histogram(df,x="Global_Sales",title="4. Histogram"),
-        px.scatter(df,x="Year",y="Global_Sales",title="5. Scatter"),
-        px.bar(df,x="Platform",y="NA_Sales",title="6. NA"),
-        px.bar(df,x="Platform",y="EU_Sales",title="7. EU"),
-        px.bar(df,x="Platform",y="JP_Sales",title="8. JP"),
-        px.bar(df,x="Platform",y="Other_Sales",title="9. Other"),
-        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales",title="10. Trend")
+        px.bar(df,x="Platform",y="Global_Sales"),
+        px.pie(df,names="Genre",values="Global_Sales"),
+        px.box(df,x="Genre",y="Global_Sales"),
+        px.histogram(df,x="Global_Sales"),
+        px.scatter(df,x="Year",y="Global_Sales"),
+        px.bar(df,x="Platform",y="NA_Sales"),
+        px.bar(df,x="Platform",y="EU_Sales"),
+        px.bar(df,x="Platform",y="JP_Sales"),
+        px.bar(df,x="Platform",y="Other_Sales"),
+        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales"),
     ]
 
     col1,col2 = st.columns(2)
@@ -201,31 +175,29 @@ elif menu == "💰 Sales":
 # ================= SQL =================
 elif menu == "🧮 SQL Analysis":
 
-    st.title("🧮 SQL Analysis (15 Queries)")
+    st.title("🧮 SQL Analysis")
 
     conn = sqlite3.connect("games.db")
     games.to_sql("games",conn,if_exists="replace",index=False)
     sales.to_sql("vgsales",conn,if_exists="replace",index=False)
 
-    queries = {
-        f"Query {i}": q for i,q in enumerate([
-            "SELECT * FROM games LIMIT 10",
-            "SELECT * FROM vgsales LIMIT 10",
-            "SELECT Genre, SUM(Global_Sales) FROM vgsales GROUP BY Genre",
-            "SELECT Platform, SUM(Global_Sales) FROM vgsales GROUP BY Platform",
-            "SELECT Publisher, SUM(Global_Sales) FROM vgsales GROUP BY Publisher",
-            "SELECT Year, SUM(Global_Sales) FROM vgsales GROUP BY Year",
-            "SELECT Name, Global_Sales FROM vgsales ORDER BY Global_Sales DESC LIMIT 10",
-            "SELECT Genre, AVG(Global_Sales) FROM vgsales GROUP BY Genre",
-            "SELECT Platform, AVG(Global_Sales) FROM vgsales GROUP BY Platform",
-            "SELECT COUNT(*) FROM vgsales",
-            "SELECT Genre, COUNT(*) FROM vgsales GROUP BY Genre",
-            "SELECT Platform, COUNT(*) FROM vgsales GROUP BY Platform",
-            "SELECT Year, COUNT(*) FROM vgsales GROUP BY Year",
-            "SELECT Publisher, COUNT(*) FROM vgsales GROUP BY Publisher",
-            "SELECT Genre, Platform, SUM(Global_Sales) FROM vgsales GROUP BY Genre, Platform"
-        ],1)
-    }
+    queries = {f"Query {i}": q for i,q in enumerate([
+        "SELECT * FROM games LIMIT 10",
+        "SELECT * FROM vgsales LIMIT 10",
+        "SELECT Genre, SUM(Global_Sales) FROM vgsales GROUP BY Genre",
+        "SELECT Platform, SUM(Global_Sales) FROM vgsales GROUP BY Platform",
+        "SELECT Publisher, SUM(Global_Sales) FROM vgsales GROUP BY Publisher",
+        "SELECT Year, SUM(Global_Sales) FROM vgsales GROUP BY Year",
+        "SELECT Name, Global_Sales FROM vgsales ORDER BY Global_Sales DESC LIMIT 10",
+        "SELECT Genre, AVG(Global_Sales) FROM vgsales GROUP BY Genre",
+        "SELECT Platform, AVG(Global_Sales) FROM vgsales GROUP BY Platform",
+        "SELECT COUNT(*) FROM vgsales",
+        "SELECT Genre, COUNT(*) FROM vgsales GROUP BY Genre",
+        "SELECT Platform, COUNT(*) FROM vgsales GROUP BY Platform",
+        "SELECT Year, COUNT(*) FROM vgsales GROUP BY Year",
+        "SELECT Publisher, COUNT(*) FROM vgsales GROUP BY Publisher",
+        "SELECT Genre, Platform, SUM(Global_Sales) FROM vgsales GROUP BY Genre, Platform"
+    ],1)}
 
     q = st.selectbox("Select Query", list(queries.keys()))
     df_sql = pd.read_sql(queries[q],conn)
