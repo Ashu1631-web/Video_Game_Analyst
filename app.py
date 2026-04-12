@@ -53,7 +53,7 @@ if not st.session_state.auth:
     st.markdown("""
     <style>
     .stApp {
-        background-image:url("https://images.unsplash.com/photo-1602620502036-e52519d58d92?q=80&w=1032&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
+        background-image:url("https://images.unsplash.com/photo-1602620502036-e52519d58d92");
         background-size:cover;
     }
     </style>
@@ -87,12 +87,7 @@ if menu == "📌 Overview":
 
     st.markdown("""
 ### 📌 Project Overview
-
-Gaming Analytics Dashboard using:
-- Python
-- Streamlit
-- SQL
-- Machine Learning
+Gaming Analytics Dashboard using Python, Streamlit, SQL, Machine Learning
 
 ### 🎯 Objective
 - Analyze sales trends  
@@ -104,9 +99,6 @@ Gaming Analytics Dashboard using:
 ✔ Filters  
 ✔ ML Forecast  
 ✔ SQL Analysis  
-
-### 🛠 Tech Stack
-Python | Pandas | Plotly | Streamlit
 """)
 
 # ================= DASHBOARD =================
@@ -125,16 +117,17 @@ elif menu == "📊 Dashboard":
     if year!="All": df=df[df["Year"]==year]
 
     charts = [
-        px.bar(df,x="Platform",y="Global_Sales",title="1 Platform"),
-        px.bar(df,x="Genre",y="Global_Sales",title="2 Genre"),
-        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales",title="3 Trend"),
-        px.pie(df,names="Genre",values="Global_Sales",title="4 Dist"),
-        px.box(df,x="Genre",y="Global_Sales",title="5 Box"),
-        px.histogram(df,x="Global_Sales",title="6 Histogram"),
-        px.scatter(df,x="Year",y="Global_Sales",title="7 Scatter"),
-        px.bar(df.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10),x="Publisher",y="Global_Sales",title="8 Publisher"),
-        px.bar(df,x="Platform",y="NA_Sales",title="9 NA"),
-        px.bar(df,x="Platform",y="EU_Sales",title="10 EU"),
+        px.bar(df,x="Platform",y="Global_Sales"),
+        px.bar(df,x="Genre",y="Global_Sales"),
+        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales"),
+        px.pie(df,names="Genre",values="Global_Sales"),
+        px.box(df,x="Genre",y="Global_Sales"),
+        px.histogram(df,x="Global_Sales"),
+        px.scatter(df,x="Year",y="Global_Sales"),
+        px.bar(df.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10),
+               x="Publisher",y="Global_Sales"),
+        px.bar(df,x="Platform",y="NA_Sales"),
+        px.bar(df,x="Platform",y="EU_Sales"),
     ]
 
     col1,col2 = st.columns(2)
@@ -149,8 +142,20 @@ elif menu == "💰 Sales":
 
     st.title("💰 Sales")
 
-    genre = st.selectbox("Genre", ["All"] + list(sales["Genre"].unique()))
-    df = sales if genre=="All" else sales[sales["Genre"]==genre]
+    c1,c2,c3 = st.columns(3)
+
+    genre = c1.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
+    platform = c2.selectbox("Platform", ["All"] + list(sales["Platform"].dropna().unique()))
+    year = c3.selectbox("Year", ["All"] + list(sorted(sales["Year"].dropna().unique())))
+
+    df = sales.copy()
+
+    if genre != "All":
+        df = df[df["Genre"] == genre]
+    if platform != "All":
+        df = df[df["Platform"] == platform]
+    if year != "All":
+        df = df[df["Year"] == year]
 
     charts = [
         px.bar(df,x="Platform",y="Global_Sales"),
@@ -162,7 +167,8 @@ elif menu == "💰 Sales":
         px.bar(df,x="Platform",y="EU_Sales"),
         px.bar(df,x="Platform",y="JP_Sales"),
         px.bar(df,x="Platform",y="Other_Sales"),
-        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),x="Year",y="Global_Sales"),
+        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),
+                x="Year",y="Global_Sales"),
     ]
 
     col1,col2 = st.columns(2)
@@ -171,6 +177,64 @@ elif menu == "💰 Sales":
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.plotly_chart(premium(fig),use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
+
+# ================= ENGAGEMENT =================
+elif menu == "🎮 Engagement":
+
+    st.title("🎮 User Engagement")
+
+    top_games = sales.groupby("Name")["Global_Sales"].sum().reset_index()
+    top_games = top_games.sort_values(by="Global_Sales", ascending=False).head(10)
+
+    fig = px.bar(
+        top_games.sort_values(by="Global_Sales"),
+        x="Global_Sales",
+        y="Name",
+        orientation='h'
+    )
+
+    st.plotly_chart(premium(fig), use_container_width=True)
+
+# ================= INSIGHTS =================
+elif menu == "🧠 Insights":
+
+    st.title("🧠 Insights")
+
+    st.markdown("""
+- 🎯 Action & Sports games dominate sales  
+- 📈 Peak growth between 2005–2012  
+- 🎮 PS2, Xbox top platforms  
+- 🌍 NA highest revenue  
+""")
+
+# ================= ML FORECAST =================
+elif menu == "📈 ML Forecast":
+
+    st.title("📈 Sales Forecast")
+
+    df_ml = sales.groupby("Year")["Global_Sales"].sum().reset_index()
+
+    X = df_ml[["Year"]]
+    y = df_ml["Global_Sales"]
+
+    model = LinearRegression()
+    model.fit(X, y)
+
+    last_year = int(df_ml["Year"].max())
+    future_years = pd.DataFrame({"Year": list(range(last_year+1, last_year+6))})
+
+    preds = model.predict(future_years)
+
+    fig = px.line(df_ml, x="Year", y="Global_Sales")
+
+    fig.add_scatter(
+        x=future_years["Year"],
+        y=preds,
+        mode='lines+markers',
+        name='Forecast'
+    )
+
+    st.plotly_chart(premium(fig), use_container_width=True)
 
 # ================= SQL =================
 elif menu == "🧮 SQL Analysis":
@@ -200,7 +264,7 @@ elif menu == "🧮 SQL Analysis":
     ],1)}
 
     q = st.selectbox("Select Query", list(queries.keys()))
-    df_sql = pd.read_sql(queries[q],conn)
+    df_sql = pd.read_sql(queries[q], conn)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.dataframe(df_sql)
