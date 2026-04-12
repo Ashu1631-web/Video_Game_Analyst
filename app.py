@@ -4,7 +4,7 @@ import plotly.express as px
 import sqlite3
 from sklearn.linear_model import LinearRegression
 
-st.set_page_config(page_title="🎮 Game Analytics Pro", layout="wide")
+st.set_page_config(page_title="🎮 Video Game & Sales Analytics", layout="wide")
 
 # ================= SESSION =================
 if "auth" not in st.session_state:
@@ -53,7 +53,7 @@ if not st.session_state.auth:
     st.markdown("""
     <style>
     .stApp {
-        background-image:url("https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?q=80");
+        background-image:url("https://images.unsplash.com/photo-1602620502036-e52519d58d92?q=80&w=1032&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
         background-size:cover;
     }
     </style>
