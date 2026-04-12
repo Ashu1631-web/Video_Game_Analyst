@@ -3,3 +3,4 @@ pandas
 numpy
 plotly
 streamlit-option-menu==0.3.6
+scikit-learn
