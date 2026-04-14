@@ -12,7 +12,7 @@ if not st.session_state.login:
     st.markdown("""
     <style>
     .stApp {
-        background-image: url("https://wallpaperaccess.com/full/1686920.jpg");
+        background-image: url("https://wallpaperaccess.com/full/236603.jpg");
         background-size: cover;
     }
     </style>
@@ -44,7 +44,7 @@ sales_df = load_sales()
 
 # ================= NAV =================
 st.sidebar.title("🎮 Navigation")
-page = st.sidebar.radio("Go to", ["Overview","Dashboard","Sales","SQL Analysis"])
+page = st.sidebar.radio("Go to", ["Overview","Dashboard","Sales","Engagement", "Insights", "ML Forecast", "SQL Analysis"])
 
 # ================= OVERVIEW =================
 if page == "Overview":
@@ -101,6 +101,65 @@ elif page == "Sales":
         px.ecdf(df, x="Global_Sales", title="ECDF")
     ]:
         st.plotly_chart(fig, use_container_width=True)
+
+# ================= ENGAGEMENT =================
+
+    df = sales_df.copy()
+
+    st.subheader("📊 Engagement Data")
+    st.dataframe(df.head(50))
+
+    charts = [
+        px.bar(df.head(10), x="Name", y="Global_Sales", color="Name", title="Top Games by Sales"),
+        px.scatter(df, x="Year", y="Global_Sales", color="Genre", title="Year vs Sales"),
+        px.histogram(df, x="Global_Sales", color="Genre", title="Sales Distribution"),
+        px.box(df, x="Genre", y="Global_Sales", color="Genre", title="Genre vs Sales"),
+        px.violin(df, x="Genre", y="Global_Sales", color="Genre", title="Violin Plot"),
+        px.area(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Area Trend"),
+        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Line Trend"),
+        px.pie(df, names="Genre", title="Genre Share"),
+        px.density_heatmap(df, x="Year", y="Global_Sales", title="Heatmap"),
+        px.ecdf(df, x="Global_Sales", title="ECDF")
+    ]
+
+    for fig in charts:
+        st.plotly_chart(fig, use_container_width=True)
+
+# ================= INSIGHTS =================
+elif page == "Insights":
+    st.title("🧠 Insights")
+
+    top_genre = sales_df.groupby("Genre")["Global_Sales"].sum().idxmax()
+    top_platform = sales_df.groupby("Platform")["Global_Sales"].sum().idxmax()
+    peak_year = int(sales_df.groupby("Year")["Global_Sales"].sum().idxmax())
+    total_sales = round(sales_df["Global_Sales"].sum(),2)
+
+    st.markdown(f"""
+    ### 📊 Key Business Insights
+
+    - 🎯 **Top Genre:** {top_genre}
+    - 🕹️ **Top Platform:** {top_platform}
+    - 📅 **Peak Sales Year:** {peak_year}
+    - 💰 **Total Global Sales:** {total_sales} Million
+
+    ### 📈 Observations
+    - Action & Sports dominate global market
+    - Sales peak observed around early 2010s
+    - North America contributes highest revenue
+    """)
+
+# ================= ML FORECAST =================
+elif page == "ML Forecast":
+    st.title("🤖 ML Forecast")
+
+    year_range = st.slider("Select Year Range", int(sales_df.Year.min()), int(sales_df.Year.max()), (2000,2015))
+
+    df = sales_df[(sales_df["Year"] >= year_range[0]) & (sales_df["Year"] <= year_range[1])]
+
+    trend = df.groupby("Year")["Global_Sales"].sum().reset_index()
+
+    st.subheader("📈 Sales Trend Forecast")
+    st.plotly_chart(px.line(trend, x="Year", y="Global_Sales", color_discrete_sequence=["cyan"], title="Sales Trend"), use_container_width=True)
 
 # ================= SQL =================
 elif page == "SQL Analysis":
