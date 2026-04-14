@@ -42,13 +42,66 @@ def load_sales():
 games_df = load_games()
 sales_df = load_sales()
 
-# ================= NAV =================
+# ================= CUSTOM NAV =================
 st.sidebar.title("🎮 Navigation")
-page = st.sidebar.radio("Go to", ["Overview","Dashboard","Sales","Engagement", "Insights", "ML Forecast", "SQL Analysis"])
+
+if "page" not in st.session_state:
+    st.session_state.page = "Overview"
+
+def nav(label, icon):
+    active = "🔴" if st.session_state.page == label else "⚪"
+    if st.sidebar.button(f"{active} {icon} {label}"):
+        st.session_state.page = label
+
+nav("Overview", "📌")
+nav("Dashboard", "📊")
+nav("Sales", "💰")
+nav("Engagement", "🎮")
+nav("Insights", "🧠")
+nav("ML Forecast", "🤖")
+nav("SQL Analysis", "🗃️")
+
+page = st.session_state.page
 
 # ================= OVERVIEW =================
 if page == "Overview":
     st.title("🎮 Video Game Sales & Market Analytics")
+    st.markdown("### Transforming Raw Data into Actionable Gaming Insights")
+
+    st.markdown("""
+📌 **Project Vision**  
+This project is a comprehensive End-to-End Analytics Suite designed to decode the global gaming market.  
+By combining historical sales data with Machine Learning and SQL-driven insights, the dashboard identifies market winners, platform lifecycles, and future growth trends.
+
+---
+
+🎯 **Strategic Objectives**
+
+- **Market Intelligence:** Decode 20+ years of sales trends across Global, NA, EU, and JP markets  
+- **Performance Benchmarking:** Compare dominance of Sony, Microsoft, and Nintendo  
+- **Predictive Analysis:** Forecast future sales using ML models  
+
+---
+
+📊 **System Features**
+
+| Feature | Description |
+|--------|------------|
+| 📈 10+ Interactive Visuals | Heatmaps, Bar charts, Pie charts |
+| 🎛️ Multi-Dimensional Filters | Filter by Year, Genre, Platform |
+| 🤖 ML Forecasting | Predict future trends |
+| 💾 SQL Integration | Fast queries & aggregations |
+
+---
+
+🛠️ **Technology Stack**
+
+- **Frontend:** Streamlit (Python)  
+- **Data Processing:** Pandas & NumPy  
+- **Analytics Engine:** SQL / SQLite  
+- **Machine Learning:** Scikit-Learn  
+- **Visualization:** Plotly & Seaborn  
+""")
 
 # ================= DASHBOARD =================
 elif page == "Dashboard":
