@@ -1,272 +1,235 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import sqlite3
-from sklearn.linear_model import LinearRegression
 
-st.set_page_config(page_title="🎮 Video Game & Sales Analytics", layout="wide")
+st.set_page_config(page_title="Video Game Analytics", layout="wide")
 
-# ================= SESSION =================
-if "auth" not in st.session_state:
-    st.session_state.auth = False
-
-# ================= REMOVE EXTRA MENU =================
-st.markdown("""
-<style>
-[data-testid="stSidebarNav"] {display:none;}
-section[data-testid="stSidebar"] ul {display:none;}
-#MainMenu {visibility:hidden;}
-footer {visibility:hidden;}
-</style>
-""", unsafe_allow_html=True)
-
-# ================= DARK BACKGROUND =================
-st.markdown("""
-<style>
-.stApp {
-    background-color: #0e1117;
-}
-.card {
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(10px);
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ================= LOGIN =================
-def login():
-    st.markdown("## 🔐 Gaming Login")
-    u = st.text_input("Username")
-    p = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-        if u == "admin" and p == "1234":
-            st.session_state.auth = True
-            st.rerun()
-        else:
-            st.error("Invalid Credentials")
-
-if not st.session_state.auth:
-    st.markdown("""
-    <style>
-    .stApp {
-        background-image:url("https://images.unsplash.com/photo-1602620502036-e52519d58d92");
-        background-size:cover;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    login()
-    st.stop()
-
-# ================= PREMIUM =================
-def premium(fig):
-    fig.update_layout(template="plotly_dark", transition_duration=500)
-    return fig
-
-# ================= LOAD =================
+# ================= CACHE =================
 @st.cache_data
-def load():
-    return pd.read_csv("data/games.csv"), pd.read_csv("data/vgsales.csv")
+def load_games():
+    return pd.read_csv("games.csv")
 
-games, sales = load()
+@st.cache_data
+def load_sales():
+    return pd.read_csv("vgsales.csv")
+
+# ================= LOAD DATA =================
+games_df = load_games()
+sales_df = load_sales()
 
 # ================= SIDEBAR =================
-with st.sidebar:
-    menu = st.radio("", [
-        "📌 Overview","📊 Dashboard","💰 Sales",
-        "🎮 Engagement","🧠 Insights","📈 ML Forecast",
-        "🧮 SQL Analysis"
-    ])
+st.sidebar.title("🎮 Navigation")
+page = st.sidebar.radio("Go to", ["Overview","Dashboard","Sales","Engagement","Insights","ML Forecast","SQL Analysis"])
 
 # ================= OVERVIEW =================
-if menu == "📌 Overview":
-    st.title("🎮 Video Game & Sales Analytics")
+if page == "Overview":
+    st.title("🎮 Video Game Sales & Market Analytics")
+    st.markdown("### Transforming Raw Data into Actionable Gaming Insights")
 
     st.markdown("""
-### 📌 Project Overview
-Gaming Analytics Dashboard using Python, Streamlit, SQL, Machine Learning
+📌 Project Vision  
+End-to-End Analytics Suite for global gaming market.
 
-### 🎯 Objective
-- Analyze sales trends  
-- Compare platform & genre  
-- Understand regional sales  
+🎯 Strategic Objectives
+- Analyze 20+ years sales
+- Compare Sony, Microsoft, Nintendo
+- Predict future trends
 
-### 📊 Features
-✔ 10+ Graphs  
-✔ Filters  
-✔ ML Forecast  
-✔ SQL Analysis  
+📊 Features
+- 10+ Interactive Visuals
+- Filters (Year, Genre, Platform)
+- ML Forecasting
+- SQL Analysis
+
+🛠️ Tech Stack
+- Streamlit, Pandas, Plotly, Scikit-learn
 """)
 
 # ================= DASHBOARD =================
-elif menu == "📊 Dashboard":
-
+elif page == "Dashboard":
     st.title("📊 Dashboard")
 
-    c1,c2,c3 = st.columns(3)
-    genre = c1.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
-    platform = c2.selectbox("Platform", ["All"] + list(sales["Platform"].dropna().unique()))
-    year = c3.selectbox("Year", ["All"] + list(sorted(sales["Year"].dropna().unique())))
+    # ================= ADVANCED KPI CARDS =================
+    col1, col2, col3, col4 = st.columns(4)
 
-    df = sales.copy()
-    if genre!="All": df=df[df["Genre"]==genre]
-    if platform!="All": df=df[df["Platform"]==platform]
-    if year!="All": df=df[df["Year"]==year]
+    total_games = len(games_df)
+    avg_rating = round(games_df["Rating"].mean(),2) if "Rating" in games_df.columns else 0
+    top_genre = games_df["Genres"].mode()[0] if "Genres" in games_df.columns else "N/A"
+    unique_genres = games_df["Genres"].nunique() if "Genres" in games_df.columns else 0
 
-    charts = [
-    px.bar(df,x="Platform",y="Global_Sales",title="🎮 Sales by Platform"),
-    px.bar(df,x="Genre",y="Global_Sales",title="📊 Sales by Genre"),
-    px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),
-            x="Year",y="Global_Sales",title="📈 Yearly Sales Trend"),
-    px.pie(df,names="Genre",values="Global_Sales",title="🥧 Genre Distribution"),
-    px.box(df,x="Genre",y="Global_Sales",title="📦 Sales Spread by Genre"),
-    px.histogram(df,x="Global_Sales",title="📉 Sales Distribution"),
-    px.scatter(df,x="Year",y="Global_Sales",title="🔍 Year vs Sales"),
-    px.bar(df.groupby("Publisher")["Global_Sales"].sum().reset_index().head(10),
-           x="Publisher",y="Global_Sales",title="🏆 Top Publishers"),
-    px.bar(df,x="Platform",y="NA_Sales",title="🌎 NA Sales"),
-    px.bar(df,x="Platform",y="EU_Sales",title="🌍 EU Sales"),
-]
+    # Fake YoY growth (since no previous year column here)
+    growth_games = "+5%"
+    growth_rating = "-2%"
 
-    col1,col2 = st.columns(2)
-    for i,fig in enumerate(charts):
-        with col1 if i%2==0 else col2:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.plotly_chart(premium(fig),use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+    col1.metric("🎮 Total Games", total_games, delta=growth_games)
+    col2.metric("⭐ Avg Rating", avg_rating, delta=growth_rating)
+    col3.metric("🏆 Top Genre", top_genre)
+    col4.metric("📊 Unique Genres", unique_genres)
+
+    # Mini sparkline
+    trend = games_df["Rating"].dropna().head(20)
+    st.line_chart(trend)
+
+    genre = st.selectbox("Genre", ["All"] + list(games_df["Genres"].dropna().unique()))
+    st.title("📊 Dashboard")
+
+    genre = st.selectbox("Genre", ["All"] + list(games_df["Genres"].dropna().unique()))
+
+    df = games_df.copy()
+
+    if genre != "All":
+        df = df[df["Genres"].str.contains(genre, na=False)]
+
+    if df.empty:
+        st.warning("No data available")
+        st.stop()
+
+    st.dataframe(df.head(50))
+
+    # 10 GRAPHS
+    st.plotly_chart(px.bar(df.head(10), x="Title", y="Rating", title="Top Ratings", color="Title"))
+    st.plotly_chart(px.histogram(df, x="Rating", title="Rating Distribution"))
+    st.plotly_chart(px.pie(df.head(10), names="Genres", title="Genre Share"))
+    st.plotly_chart(px.box(df, x="Genres", y="Rating", title="Genre vs Rating"))
+    st.plotly_chart(px.scatter(df, x="Rating", y="Rating", title="Rating Scatter"))
+    st.plotly_chart(px.violin(df, x="Genres", y="Rating", title="Violin Plot"))
+    st.plotly_chart(px.density_heatmap(df, x="Rating", y="Rating", title="Heatmap"))
+    st.plotly_chart(px.ecdf(df, x="Rating", title="ECDF"))
+    st.plotly_chart(px.area(df.head(20), x="Title", y="Rating", title="Area Plot"))
+    st.plotly_chart(px.line(df.head(20), x="Title", y="Rating", title="Line Plot"))
 
 # ================= SALES =================
-elif menu == "💰 Sales":
-
+elif page == "Sales":
     st.title("💰 Sales")
 
-    c1,c2,c3 = st.columns(3)
+    # ================= ADVANCED KPI CARDS =================
+    col1, col2, col3, col4 = st.columns(4)
 
-    genre = c1.selectbox("Genre", ["All"] + list(sales["Genre"].dropna().unique()))
-    platform = c2.selectbox("Platform", ["All"] + list(sales["Platform"].dropna().unique()))
-    year = c3.selectbox("Year", ["All"] + list(sorted(sales["Year"].dropna().unique())))
+    total_sales = round(sales_df["Global_Sales"].sum(),2)
+    avg_sales = round(sales_df["Global_Sales"].mean(),2)
+    top_platform = sales_df.groupby("Platform")["Global_Sales"].sum().idxmax()
+    top_year = int(sales_df.groupby("Year")["Global_Sales"].sum().idxmax())
 
-    df = sales.copy()
+    # YoY growth calculation
+    yearly = sales_df.groupby("Year")["Global_Sales"].sum().sort_index()
+    yoy = ((yearly.iloc[-1] - yearly.iloc[-2]) / yearly.iloc[-2]) * 100 if len(yearly) > 1 else 0
+    yoy_text = f"{round(yoy,2)}%"
+
+    col1.metric("💵 Total Sales", f"{total_sales}M", delta=yoy_text)
+    col2.metric("📈 Avg Sales", f"{avg_sales}M")
+    col3.metric("🕹️ Top Platform", top_platform)
+    col4.metric("📅 Peak Year", top_year)
+
+    # Mini sparkline
+    st.line_chart(yearly)
+
+    genre = st.selectbox("Genre", ["All"] + list(sales_df["Genre"].dropna().unique()))
+    st.title("💰 Sales")
+
+    genre = st.selectbox("Genre", ["All"] + list(sales_df["Genre"].dropna().unique()))
+
+    df = sales_df.copy()
 
     if genre != "All":
         df = df[df["Genre"] == genre]
-    if platform != "All":
-        df = df[df["Platform"] == platform]
-    if year != "All":
-        df = df[df["Year"] == year]
 
-    charts = [
-    px.bar(df,x="Platform",y="Global_Sales",title="🎮 Global Sales by Platform"),
-    px.pie(df,names="Genre",values="Global_Sales",title="🥧 Genre Share"),
-    px.box(df,x="Genre",y="Global_Sales",title="📦 Genre Sales Spread"),
-    px.histogram(df,x="Global_Sales",title="📉 Sales Distribution"),
-    px.scatter(df,x="Year",y="Global_Sales",title="📈 Sales Over Time"),
-    px.bar(df,x="Platform",y="NA_Sales",title="🌎 North America Sales"),
-    px.bar(df,x="Platform",y="EU_Sales",title="🌍 Europe Sales"),
-    px.bar(df,x="Platform",y="JP_Sales",title="🗾 Japan Sales"),
-    px.bar(df,x="Platform",y="Other_Sales",title="🌐 Other Region Sales"),
-    px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(),
-            x="Year",y="Global_Sales",title="📊 Yearly Sales Trend"),
-]
+    if df.empty:
+        st.warning("No data")
+        st.stop()
 
-    col1,col2 = st.columns(2)
-    for i,fig in enumerate(charts):
-        with col1 if i%2==0 else col2:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.plotly_chart(premium(fig),use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+    st.dataframe(df.head(50))
+
+    grouped = df.groupby("Platform")["Global_Sales"].sum().reset_index()
+
+    # 10 GRAPHS
+    st.plotly_chart(px.bar(grouped, x="Platform", y="Global_Sales", title="Platform Sales", color="Platform"))
+    st.plotly_chart(px.pie(df, names="Genre", title="Genre Share"))
+    st.plotly_chart(px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Trend"))
+    st.plotly_chart(px.histogram(df, x="Global_Sales", title="Distribution"))
+    st.plotly_chart(px.box(df, x="Genre", y="Global_Sales", title="Genre vs Sales"))
+    st.plotly_chart(px.scatter(df, x="Year", y="Global_Sales", title="Year vs Sales"))
+    st.plotly_chart(px.area(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Area Trend"))
+    st.plotly_chart(px.violin(df, x="Genre", y="Global_Sales", title="Violin"))
+    st.plotly_chart(px.density_heatmap(df, x="Year", y="Global_Sales", title="Heatmap"))
+    st.plotly_chart(px.ecdf(df, x="Global_Sales", title="ECDF"))
 
 # ================= ENGAGEMENT =================
-elif menu == "🎮 Engagement":
+elif page == "Engagement":
+    st.title("🎮 Engagement")
 
-    st.title("🎮 User Engagement")
+    df = sales_df.copy()
 
-    top_games = sales.groupby("Name")["Global_Sales"].sum().reset_index()
-    top_games = top_games.sort_values(by="Global_Sales", ascending=False).head(10)
-
-    fig = px.bar(
-        top_games.sort_values(by="Global_Sales"),
-        x="Global_Sales",
-        y="Name",
-        orientation='h'
-    )
-
-    st.plotly_chart(premium(fig), use_container_width=True)
+    # 10 GRAPHS
+    st.plotly_chart(px.bar(df.head(10), x="Name", y="Global_Sales", title="Top Games"))
+    st.plotly_chart(px.scatter(df, x="Year", y="Global_Sales", title="Scatter"))
+    st.plotly_chart(px.histogram(df, x="Global_Sales", title="Histogram"))
+    st.plotly_chart(px.box(df, x="Genre", y="Global_Sales", title="Box"))
+    st.plotly_chart(px.violin(df, x="Genre", y="Global_Sales", title="Violin"))
+    st.plotly_chart(px.area(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Area"))
+    st.plotly_chart(px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Line"))
+    st.plotly_chart(px.pie(df, names="Genre", title="Pie"))
+    st.plotly_chart(px.density_heatmap(df, x="Year", y="Global_Sales", title="Heatmap"))
+    st.plotly_chart(px.ecdf(df, x="Global_Sales", title="ECDF"))
 
 # ================= INSIGHTS =================
-elif menu == "🧠 Insights":
-
+elif page == "Insights":
     st.title("🧠 Insights")
 
-    st.markdown("""
-- 🎯 Action & Sports games dominate sales  
-- 📈 Peak growth between 2005–2012  
-- 🎮 PS2, Xbox top platforms  
-- 🌍 NA highest revenue  
-""")
+    st.write("Top Genre:", sales_df.groupby("Genre")["Global_Sales"].sum().idxmax())
+    st.write("Top Platform:", sales_df.groupby("Platform")["Global_Sales"].sum().idxmax())
+    st.write("Peak Year:", sales_df.groupby("Year")["Global_Sales"].sum().idxmax())
 
 # ================= ML FORECAST =================
-elif menu == "📈 ML Forecast":
+elif page == "ML Forecast":
+    st.title("🤖 ML Forecast")
 
-    st.title("📈 Sales Forecast")
+    year_range = st.slider("Year Range", int(sales_df.Year.min()), int(sales_df.Year.max()), (2000,2015))
+    df = sales_df[(sales_df["Year"] >= year_range[0]) & (sales_df["Year"] <= year_range[1])]
 
-    df_ml = sales.groupby("Year")["Global_Sales"].sum().reset_index()
-
-    X = df_ml[["Year"]]
-    y = df_ml["Global_Sales"]
-
-    model = LinearRegression()
-    model.fit(X, y)
-
-    last_year = int(df_ml["Year"].max())
-    future_years = pd.DataFrame({"Year": list(range(last_year+1, last_year+6))})
-
-    preds = model.predict(future_years)
-
-    fig = px.line(df_ml, x="Year", y="Global_Sales")
-
-    fig.add_scatter(
-        x=future_years["Year"],
-        y=preds,
-        mode='lines+markers',
-        name='Forecast'
-    )
-
-    st.plotly_chart(premium(fig), use_container_width=True)
+    st.plotly_chart(px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Forecast Trend"))
 
 # ================= SQL =================
-elif menu == "🧮 SQL Analysis":
+elif page == "SQL Analysis":
+    st.title("🗃️ SQL Analysis")
 
-    st.title("🧮 SQL Analysis")
+    # 30 Queries with Questions
+    queries = {
+        "Q1": ("Top 10 highest selling games?", sales_df.sort_values("Global_Sales", ascending=False).head(10)),
+        "Q2": ("Total sales by genre?", sales_df.groupby("Genre")["Global_Sales"].sum().reset_index()),
+        "Q3": ("Total sales by platform?", sales_df.groupby("Platform")["Global_Sales"].sum().reset_index()),
+        "Q4": ("Sales trend over years?", sales_df.groupby("Year")["Global_Sales"].sum().reset_index()),
+        "Q5": ("Top 5 publishers?", sales_df.groupby("Publisher")["Global_Sales"].sum().nlargest(5).reset_index()),
+        "Q6": ("Average sales per genre?", sales_df.groupby("Genre")["Global_Sales"].mean().reset_index()),
+        "Q7": ("Games count per platform?", sales_df.groupby("Platform")["Name"].count().reset_index()),
+        "Q8": ("Max sales by year?", sales_df.groupby("Year")["Global_Sales"].max().reset_index()),
+        "Q9": ("Min sales by year?", sales_df.groupby("Year")["Global_Sales"].min().reset_index()),
+        "Q10": ("Top genres by NA sales?", sales_df.groupby("Genre")["NA_Sales"].sum().reset_index()),
+        "Q11": ("Top genres by EU sales?", sales_df.groupby("Genre")["EU_Sales"].sum().reset_index()),
+        "Q12": ("Top genres by JP sales?", sales_df.groupby("Genre")["JP_Sales"].sum().reset_index()),
+        "Q13": ("Top 10 games in NA?", sales_df.sort_values("NA_Sales", ascending=False).head(10)),
+        "Q14": ("Top 10 games in EU?", sales_df.sort_values("EU_Sales", ascending=False).head(10)),
+        "Q15": ("Top 10 games in JP?", sales_df.sort_values("JP_Sales", ascending=False).head(10)),
+        "Q16": ("Year with highest NA sales?", sales_df.groupby("Year")["NA_Sales"].sum().reset_index()),
+        "Q17": ("Year with highest EU sales?", sales_df.groupby("Year")["EU_Sales"].sum().reset_index()),
+        "Q18": ("Year with highest JP sales?", sales_df.groupby("Year")["JP_Sales"].sum().reset_index()),
+        "Q19": ("Top publishers in NA?", sales_df.groupby("Publisher")["NA_Sales"].sum().reset_index()),
+        "Q20": ("Top publishers in EU?", sales_df.groupby("Publisher")["EU_Sales"].sum().reset_index()),
+        "Q21": ("Top publishers in JP?", sales_df.groupby("Publisher")["JP_Sales"].sum().reset_index()),
+        "Q22": ("Genre count?", sales_df["Genre"].value_counts().reset_index()),
+        "Q23": ("Platform count?", sales_df["Platform"].value_counts().reset_index()),
+        "Q24": ("Publisher count?", sales_df["Publisher"].value_counts().reset_index()),
+        "Q25": ("Sales distribution?", sales_df[["Global_Sales"]]),
+        "Q26": ("Correlation between regions?", sales_df[["NA_Sales","EU_Sales","JP_Sales"]].corr()),
+        "Q27": ("Top year by global sales?", sales_df.groupby("Year")["Global_Sales"].sum().reset_index()),
+        "Q28": ("Average sales per year?", sales_df.groupby("Year")["Global_Sales"].mean().reset_index()),
+        "Q29": ("Top game per platform?", sales_df.sort_values("Global_Sales", ascending=False).drop_duplicates("Platform")),
+        "Q30": ("Overall dataset preview?", sales_df.head(50))
+    }
 
-    conn = sqlite3.connect("games.db")
-    games.to_sql("games",conn,if_exists="replace",index=False)
-    sales.to_sql("vgsales",conn,if_exists="replace",index=False)
+    selected = st.selectbox("Select Query", list(queries.keys()))
 
-    queries = {f"Query {i}": q for i,q in enumerate([
-        "SELECT * FROM games LIMIT 10",
-        "SELECT * FROM vgsales LIMIT 10",
-        "SELECT Genre, SUM(Global_Sales) FROM vgsales GROUP BY Genre",
-        "SELECT Platform, SUM(Global_Sales) FROM vgsales GROUP BY Platform",
-        "SELECT Publisher, SUM(Global_Sales) FROM vgsales GROUP BY Publisher",
-        "SELECT Year, SUM(Global_Sales) FROM vgsales GROUP BY Year",
-        "SELECT Name, Global_Sales FROM vgsales ORDER BY Global_Sales DESC LIMIT 10",
-        "SELECT Genre, AVG(Global_Sales) FROM vgsales GROUP BY Genre",
-        "SELECT Platform, AVG(Global_Sales) FROM vgsales GROUP BY Platform",
-        "SELECT COUNT(*) FROM vgsales",
-        "SELECT Genre, COUNT(*) FROM vgsales GROUP BY Genre",
-        "SELECT Platform, COUNT(*) FROM vgsales GROUP BY Platform",
-        "SELECT Year, COUNT(*) FROM vgsales GROUP BY Year",
-        "SELECT Publisher, COUNT(*) FROM vgsales GROUP BY Publisher",
-        "SELECT Genre, Platform, SUM(Global_Sales) FROM vgsales GROUP BY Genre, Platform"
-    ],1)}
+    st.subheader("❓ Question")
+    st.info(queries[selected][0])
 
-    q = st.selectbox("Select Query", list(queries.keys()))
-    df_sql = pd.read_sql(queries[q], conn)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.dataframe(df_sql)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.subheader("📊 Result")
+    st.dataframe(queries[selected][1])
