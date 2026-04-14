@@ -5,13 +5,14 @@ import plotly.express as px
 st.set_page_config(page_title="🎮 Games And Sales Frame Analytics", layout="wide")
 
 # ===== GLOBAL CSS (FIX TOP NAV + SIZE) =====
-st.markdown("""
+st.sidebar.markdown("""
 <style>
-[data-testid="stSidebarNav"] {display: none;}
 div.stButton > button {
-    padding: 6px 10px;
-    font-size: 14px;
-    border-radius: 8px;
+    width: 100%;
+    padding: 4px 8px;
+    font-size: 13px;
+    border-radius: 6px;
+    margin: 2px 0;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -63,8 +64,10 @@ if "page" not in st.session_state:
 
 def nav(label, icon):
     active = "🔴" if st.session_state.page == label else "⚪"
-    if st.sidebar.button(f"{active} {icon} {label}"):
+
+    if st.sidebar.button(f"{active} {icon} {label}", key=label):
         st.session_state.page = label
+        st.rerun() 
 
 nav("Overview", "📌")
 nav("Dashboard", "📊")
@@ -120,23 +123,48 @@ By combining historical sales data with Machine Learning and SQL-driven insights
 elif page == "Dashboard":
     st.title("📊 Dashboard")
 
-    rating = st.slider("Rating Filter",
-                       float(games_df["Rating"].min()),
-                       float(games_df["Rating"].max()),
-                       (3.0, 5.0))
+    # ===== FIX DATA TYPE (ERROR SAFE) =====
+    games_df["Rating"] = pd.to_numeric(games_df["Rating"], errors="coerce")
+    games_df["Times Listed"] = pd.to_numeric(games_df["Times Listed"], errors="coerce")
+    games_df = games_df.dropna(subset=["Rating", "Times Listed"])
 
-    times = st.slider("Times Listed Filter",
-                      int(games_df["Times Listed"].min()),
-                      int(games_df["Times Listed"].max()),
-                      (0, 5000))
+    # ===== NEW FILTER UI (3 FILTERS) =====
+    col1, col2, col3 = st.columns(3)
 
-    df = games_df[
-        (games_df["Rating"] >= rating[0]) & (games_df["Rating"] <= rating[1]) &
-        (games_df["Times Listed"] >= times[0]) & (games_df["Times Listed"] <= times[1])
-    ]
+    with col1:
+        genre = st.selectbox("Genre", ["All"] + sorted(games_df["Genres"].dropna().unique()))
 
+    with col2:
+        # अगर Platform column नहीं है तो remove कर देना
+        if "Platform" in games_df.columns:
+            platform = st.selectbox("Platform", ["All"] + sorted(games_df["Platform"].dropna().unique()))
+        else:
+            platform = "All"
+
+    with col3:
+        # Release Date से Year निकालना
+        if "Release Date" in games_df.columns:
+            years = games_df["Release Date"].astype(str).str[:4]
+            year = st.selectbox("Year", ["All"] + sorted(years.dropna().unique()))
+        else:
+            year = "All"
+
+    # ===== APPLY FILTER =====
+    df = games_df.copy()
+
+    if genre != "All":
+        df = df[df["Genres"].str.contains(genre, na=False)]
+
+    if platform != "All":
+        df = df[df["Platform"] == platform]
+
+    if year != "All":
+        df = df[df["Release Date"].astype(str).str.contains(year)]
+
+    # ===== TABLE =====
     st.dataframe(df.head(50))
 
+    # ===== GRAPHS  =====
     for fig in [
         px.bar(df.head(10), x="Title", y="Rating", color="Title", title="Top Ratings"),
         px.histogram(df, x="Rating", color="Genres", title="Rating Distribution"),
@@ -155,21 +183,34 @@ elif page == "Dashboard":
 elif page == "Sales":
     st.title("💰 Sales")
 
-    genre = st.selectbox("Genre", ["All"] + list(sales_df["Genre"].dropna().unique()))
-    year = st.slider("Year Filter",
-                     int(sales_df.Year.min()),
-                     int(sales_df.Year.max()),
-                     (2000, 2015))
+    # ===== NEW FILTER UI (3 FILTERS SAME DESIGN) =====
+    col1, col2, col3 = st.columns(3)
 
-    df = sales_df[
-        (sales_df["Year"] >= year[0]) & (sales_df["Year"] <= year[1])
-    ]
+    with col1:
+        genre = st.selectbox("Genre", ["All"] + sorted(sales_df["Genre"].dropna().unique()))
+
+    with col2:
+        platform = st.selectbox("Platform", ["All"] + sorted(sales_df["Platform"].dropna().unique()))
+
+    with col3:
+        year = st.selectbox("Year", ["All"] + sorted(sales_df["Year"].dropna().astype(int).astype(str).unique()))
+
+    # ===== APPLY FILTER =====
+    df = sales_df.copy()
 
     if genre != "All":
         df = df[df["Genre"] == genre]
 
+    if platform != "All":
+        df = df[df["Platform"] == platform]
+
+    if year != "All":
+        df = df[df["Year"].astype(str) == year]
+
+    # ===== TABLE =====
     st.dataframe(df.head(50))
 
+    # ===== GRAPHS  =====
     grouped = df.groupby("Platform")["Global_Sales"].sum().reset_index()
 
     for fig in [
@@ -185,7 +226,6 @@ elif page == "Sales":
         px.ecdf(df, x="Global_Sales", title="ECDF")
     ]:
         st.plotly_chart(fig, use_container_width=True)
-
 # ================= ENGAGEMENT =================
 elif page == "Engagement":
     st.title("🎮 Engagement")
