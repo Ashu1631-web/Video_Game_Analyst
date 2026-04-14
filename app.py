@@ -23,7 +23,7 @@ if not st.session_state.logged_in:
     <style>
     [data-testid="stSidebar"] {display:none;}
     .stApp {
-        background-image: url("https://wallpaperaccess.com/full/3350936.jpg");
+        background-image: url("https://wallpaperaccess.com/full/889354.jpg");
         background-size: cover;
     }
     </style>
