@@ -7,11 +7,11 @@ st.set_page_config(page_title="Video Game Analytics", layout="wide")
 # ================= CACHE =================
 @st.cache_data
 def load_games():
-    return pd.read_csv("games.csv")
+    return pd.read_csv("data/games.csv")
 
 @st.cache_data
 def load_sales():
-    return pd.read_csv("vgsales.csv")
+    return pd.read_csv("data/vgsales.csv")
 
 # ================= LOAD DATA =================
 games_df = load_games()
