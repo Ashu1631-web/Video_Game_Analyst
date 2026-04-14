@@ -5,20 +5,14 @@ import plotly.express as px
 st.set_page_config(page_title="🎮 Games And Sales Frame Analytics", layout="wide")
 
 # ================= LOGIN =================
-if "login" not in st.session_state:
-    st.session_state.login = False
-
 if not st.session_state.login:
-    
-   if not st.session_state.login:
-    
+
     st.markdown("""
     <style>
     .stApp {
         background-image: url("https://wallpaperaccess.com/full/889354.jpg");
         background-size: cover;
     }
-    [data-testid="stSidebarNav"] {display: none;} 
     </style>
     """, unsafe_allow_html=True)
 
@@ -33,7 +27,7 @@ if not st.session_state.login:
         else:
             st.error("Wrong Credentials")
     st.stop()
-
+    
 # ================= LOAD =================
 @st.cache_data
 def load_games():
