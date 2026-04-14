@@ -2,35 +2,44 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="🎮 Games And Sales Frame Analytics", layout="wide")
+st.set_page_config(page_title="Video Game Analytics", layout="wide")
 
-# ================= LOGIN =================
-if "login" not in st.session_state:
-    st.session_state.login = False
+# 🔥 REMOVE TOP NAV
+st.markdown("""
+<style>
+[data-testid="stSidebarNav"] {display:none !important;}
+</style>
+""", unsafe_allow_html=True)
 
-if not st.session_state.login:
+# SESSION
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "page" not in st.session_state:
+    st.session_state.page = "Overview"
 
+# LOGIN PAGE
+if not st.session_state.logged_in:
     st.markdown("""
     <style>
+    [data-testid="stSidebar"] {display:none;}
     .stApp {
-        background-image: url("https://wallpaperaccess.com/full/889354.jpg");
+        background-image: url("https://wallpaperaccess.com/full/3350936.jpg");
         background-size: cover;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    st.title("🎮 Games And Sales Frame Login")
-    u = st.text_input("Username")
-    p = st.text_input("Password", type="password")
+    st.title("🎮 Login Page")
+    user = st.text_input("Username")
+    pwd = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if u == "admin" and p == "1234":
-            st.session_state.login = True
+        if user == "admin" and pwd == "1234":
+            st.session_state.logged_in = True
             st.rerun()
         else:
-            st.error("Wrong Credentials")
+            st.error("Wrong credentials")
     st.stop()
-
 # ================= LOAD =================
 @st.cache_data
 def load_games():
