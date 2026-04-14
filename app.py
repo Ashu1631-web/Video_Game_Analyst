@@ -4,19 +4,6 @@ import plotly.express as px
 
 st.set_page_config(page_title="🎮 Games And Sales Frame Analytics", layout="wide")
 
-# ===== GLOBAL CSS (FIX TOP NAV + SIZE) =====
-st.sidebar.markdown("""
-<style>
-div.stButton > button {
-    width: 100%;
-    padding: 2px 5px !important;
-    font-size: 11px !important;
-    border-radius: 6px;
-    margin: 2px 0;
-}
-</style>
-""", unsafe_allow_html=True)
-
 # ================= LOGIN =================
 if "login" not in st.session_state:
     st.session_state.login = False
