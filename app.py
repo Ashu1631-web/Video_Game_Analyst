@@ -15,7 +15,7 @@ if not st.session_state.login:
     st.markdown("""
     <style>
     .stApp {
-        background-image: url("https://wallpaperaccess.com/full/236603.jpg");
+        background-image: url("https://wallpaperaccess.com/thumb/3277674.jpg");
         background-size: cover;
     }
     [data-testid="stSidebarNav"] {display: none;} 
