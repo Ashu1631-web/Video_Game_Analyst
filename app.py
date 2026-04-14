@@ -4,7 +4,22 @@ import plotly.express as px
 
 st.set_page_config(page_title="🎮 Games And Sales Frame Analytics", layout="wide")
 
+# ===== GLOBAL CSS (FIX TOP NAV + SIZE) =====
+st.markdown("""
+<style>
+[data-testid="stSidebarNav"] {display: none;}
+div.stButton > button {
+    padding: 6px 10px;
+    font-size: 14px;
+    border-radius: 8px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ================= LOGIN =================
+if "login" not in st.session_state:
+    st.session_state.login = False
+
 if not st.session_state.login:
 
     st.markdown("""
@@ -27,7 +42,7 @@ if not st.session_state.login:
         else:
             st.error("Wrong Credentials")
     st.stop()
-    
+
 # ================= LOAD =================
 @st.cache_data
 def load_games():
@@ -40,7 +55,7 @@ def load_sales():
 games_df = load_games()
 sales_df = load_sales()
 
-# ================= CUSTOM NAV =================
+# ================= NAV =================
 st.sidebar.title("🎮 Navigation")
 
 if "page" not in st.session_state:
@@ -105,10 +120,20 @@ By combining historical sales data with Machine Learning and SQL-driven insights
 elif page == "Dashboard":
     st.title("📊 Dashboard")
 
-    genre = st.selectbox("Genre", ["All"] + list(games_df["Genres"].dropna().unique()), key="d1")
-    df = games_df.copy()
-    if genre != "All":
-        df = df[df["Genres"].str.contains(genre, na=False)]
+    rating = st.slider("Rating Filter",
+                       float(games_df["Rating"].min()),
+                       float(games_df["Rating"].max()),
+                       (3.0, 5.0))
+
+    times = st.slider("Times Listed Filter",
+                      int(games_df["Times Listed"].min()),
+                      int(games_df["Times Listed"].max()),
+                      (0, 5000))
+
+    df = games_df[
+        (games_df["Rating"] >= rating[0]) & (games_df["Rating"] <= rating[1]) &
+        (games_df["Times Listed"] >= times[0]) & (games_df["Times Listed"] <= times[1])
+    ]
 
     st.dataframe(df.head(50))
 
@@ -130,8 +155,16 @@ elif page == "Dashboard":
 elif page == "Sales":
     st.title("💰 Sales")
 
-    genre = st.selectbox("Genre", ["All"] + list(sales_df["Genre"].dropna().unique()), key="s1")
-    df = sales_df.copy()
+    genre = st.selectbox("Genre", ["All"] + list(sales_df["Genre"].dropna().unique()))
+    year = st.slider("Year Filter",
+                     int(sales_df.Year.min()),
+                     int(sales_df.Year.max()),
+                     (2000, 2015))
+
+    df = sales_df[
+        (sales_df["Year"] >= year[0]) & (sales_df["Year"] <= year[1])
+    ]
+
     if genre != "All":
         df = df[df["Genre"] == genre]
 
@@ -154,28 +187,26 @@ elif page == "Sales":
         st.plotly_chart(fig, use_container_width=True)
 
 # ================= ENGAGEMENT =================
+elif page == "Engagement":
+    st.title("🎮 Engagement")
 
     df = sales_df.copy()
 
-    st.subheader("📊 Engagement Data")
     st.dataframe(df.head(50))
 
-    charts = [
-        px.bar(df.head(10), x="Name", y="Global_Sales", color="Name", title="Top Games by Sales"),
+    for fig in [
+        px.bar(df.head(10), x="Name", y="Global_Sales", color="Name", title="Top Games"),
         px.scatter(df, x="Year", y="Global_Sales", color="Genre", title="Year vs Sales"),
-        px.histogram(df, x="Global_Sales", color="Genre", title="Sales Distribution"),
-        px.box(df, x="Genre", y="Global_Sales", color="Genre", title="Genre vs Sales"),
-        px.violin(df, x="Genre", y="Global_Sales", color="Genre", title="Violin Plot"),
-        px.area(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Area Trend"),
-        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Line Trend"),
+        px.histogram(df, x="Global_Sales", color="Genre", title="Distribution"),
+        px.box(df, x="Genre", y="Global_Sales", color="Genre", title="Box Plot"),
+        px.violin(df, x="Genre", y="Global_Sales", color="Genre", title="Violin"),
+        px.area(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Area"),
+        px.line(df.groupby("Year")["Global_Sales"].sum().reset_index(), x="Year", y="Global_Sales", title="Trend"),
         px.pie(df, names="Genre", title="Genre Share"),
         px.density_heatmap(df, x="Year", y="Global_Sales", title="Heatmap"),
         px.ecdf(df, x="Global_Sales", title="ECDF")
-    ]
-
-    for fig in charts:
+    ]:
         st.plotly_chart(fig, use_container_width=True)
-
 # ================= INSIGHTS =================
 elif page == "Insights":
     st.title("🧠 Insights")
