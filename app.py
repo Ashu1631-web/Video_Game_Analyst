@@ -2,23 +2,27 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Video Game Analytics", layout="wide")
+st.set_page_config(page_title="🎮 Games And Sales Frame Analytics", layout="wide")
 
 # ================= LOGIN =================
 if "login" not in st.session_state:
     st.session_state.login = False
 
 if not st.session_state.login:
+    
+   if not st.session_state.login:
+    
     st.markdown("""
     <style>
     .stApp {
         background-image: url("https://wallpaperaccess.com/full/236603.jpg");
         background-size: cover;
     }
+    [data-testid="stSidebarNav"] {display: none;} 
     </style>
     """, unsafe_allow_html=True)
 
-    st.title("🎮 Login Page")
+    st.title("🎮 Games And Sales Frame Login")
     u = st.text_input("Username")
     p = st.text_input("Password", type="password")
 
@@ -65,7 +69,7 @@ page = st.session_state.page
 
 # ================= OVERVIEW =================
 if page == "Overview":
-    st.title("🎮 Video Game Sales & Market Analytics")
+    st.title("🎮 Games And Sales Frame Analytics")
     st.markdown("### Transforming Raw Data into Actionable Gaming Insights")
 
     st.markdown("""
