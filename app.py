@@ -268,16 +268,114 @@ elif page == "Insights":
 
 # ================= ML FORECAST =================
 elif page == "ML Forecast":
-    st.title("🤖 ML Forecast")
+    st.title("🤖 ML Forecast — Linear Regression")
 
-    year_range = st.slider("Select Year Range", int(sales_df.Year.min()), int(sales_df.Year.max()), (2000,2015))
+    from sklearn.linear_model import LinearRegression
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import mean_squared_error, r2_score
+    import numpy as np
 
-    df = sales_df[(sales_df["Year"] >= year_range[0]) & (sales_df["Year"] <= year_range[1])]
+    # ===== YEAR RANGE FILTER =====
+    year_range = st.slider(
+        "Select Year Range for Training",
+        int(sales_df["Year"].min()),
+        int(sales_df["Year"].max()),
+        (2000, 2015)
+    )
 
+    df = sales_df[
+        (sales_df["Year"] >= year_range[0]) &
+        (sales_df["Year"] <= year_range[1])
+    ].dropna(subset=["Year", "Global_Sales"])
+
+    # ===== DATA PREPARE =====
     trend = df.groupby("Year")["Global_Sales"].sum().reset_index()
+    trend.columns = ["Year", "Global_Sales"]
 
-    st.subheader("📈 Sales Trend Forecast")
-    st.plotly_chart(px.line(trend, x="Year", y="Global_Sales", color_discrete_sequence=["cyan"], title="Sales Trend"), use_container_width=True)
+    X = trend[["Year"]]
+    y = trend["Global_Sales"]
+
+    # ===== TRAIN / TEST SPLIT =====
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # ===== MODEL TRAIN =====
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+
+    # ===== PREDICTIONS =====
+    y_pred = model.predict(X_test)
+
+    # ===== FUTURE FORECAST (next 5 years) =====
+    last_year = int(trend["Year"].max())
+    future_years = pd.DataFrame({"Year": range(last_year + 1, last_year + 6)})
+    future_sales = model.predict(future_years)
+    future_years["Predicted_Sales"] = future_sales
+    future_years["Predicted_Sales"] = future_years["Predicted_Sales"].clip(lower=0)
+
+    # ===== MODEL METRICS =====
+    r2 = r2_score(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+
+    st.markdown("---")
+    st.subheader("📐 Model Performance")
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("R² Score", f"{r2:.3f}", help="1 ke paas = better model")
+    m2.metric("MSE", f"{mse:.2f}")
+    m3.metric("RMSE", f"{rmse:.2f}")
+
+    st.caption(f"📌 Model Equation:  Global_Sales = {model.coef_[0]:.4f} × Year + ({model.intercept_:.2f})")
+
+    st.markdown("---")
+
+    # ===== GRAPH 1: Actual vs Predicted (Training Data) =====
+    st.subheader("📊 Actual vs Predicted Sales")
+
+    trend["Predicted"] = model.predict(trend[["Year"]])
+    trend["Predicted"] = trend["Predicted"].clip(lower=0)
+
+    fig1 = px.line(trend, x="Year", y=["Global_Sales", "Predicted"],
+                   title="Actual vs Predicted Sales (Training Period)",
+                   labels={"value": "Sales (Million)", "variable": "Type"},
+                   color_discrete_map={
+                       "Global_Sales": "cyan",
+                       "Predicted": "orange"
+                   })
+    st.plotly_chart(fig1, use_container_width=True)
+
+    # ===== GRAPH 2: Future Forecast =====
+    st.subheader(f"🔮 Future Sales Forecast ({last_year+1} – {last_year+5})")
+
+    fig2 = px.bar(future_years, x="Year", y="Predicted_Sales",
+                  color="Predicted_Sales",
+                  color_continuous_scale="Blues",
+                  title="Predicted Global Sales — Next 5 Years",
+                  labels={"Predicted_Sales": "Sales (Million)"})
+    st.plotly_chart(fig2, use_container_width=True)
+
+    # ===== FUTURE TABLE =====
+    st.subheader("📋 Forecast Table")
+    future_years["Predicted_Sales"] = future_years["Predicted_Sales"].round(2)
+    st.dataframe(future_years.rename(columns={
+        "Year": "Year",
+        "Predicted_Sales": "Forecasted Global Sales (Million)"
+    }), use_container_width=True)
+
+    # ===== INTERPRETATION =====
+    st.markdown("---")
+    st.subheader("🧠 Model Interpretation")
+    direction = "increase" if model.coef_[0] > 0 else "decrease"
+    st.info(f"""
+    - **Algorithm:** Linear Regression (Scikit-Learn)
+    - **Feature (X):** Year
+    - **Target (y):** Global Sales (Million)
+    - **Training Data:** {year_range[0]} – {year_range[1]}
+    - **Trend:** Sales har saal **{abs(model.coef_[0]):.2f} Million** se {direction} ho rahi hain
+    - **R² = {r2:.3f}** → Model data ko {r2*100:.1f}% explain kar pa raha hai
+    """)
 
 # ================= SQL =================
 elif page == "SQL Analysis":
